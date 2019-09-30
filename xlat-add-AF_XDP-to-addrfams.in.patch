@@ -1,0 +1,23 @@
+From dac524ad9802f0fd55236ea36d153b62b4a96123 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 21:44:10 +0200
+Subject: [PATCH 043/293] xlat: add AF_XDP to addrfams.in
+
+* xlat/addrfams.in (AF_XDP): New constant, introduced by Linux commit
+v4.18-rc1~114^2~304^2~4^2~14.
+---
+ xlat/addrfams.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xlat/addrfams.in b/xlat/addrfams.in
+index 5824c3b..e6a6232 100644
+--- a/xlat/addrfams.in
++++ b/xlat/addrfams.in
+@@ -43,3 +43,4 @@ AF_VSOCK	40
+ AF_KCM		41
+ AF_QIPCRTR	42
+ AF_SMC		43
++AF_XDP		44
+-- 
+1.7.12.4
+

@@ -1,0 +1,25 @@
+From 6e7da522869a7ff5f4f2880390723f996a526300 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 15:46:26 +0200
+Subject: [PATCH 038/293] xlat: add BPF_PROG_TYPE_SK_REUSEPORT to
+ bpf_prog_types.in
+
+* xlat/bpf_prog_types.in (BPF_PROG_TYPE_SK_REUSEPORT): New constant,
+introduced by Linux commit v4.19-rc1~140^2~24^2~2^2~5.
+* tests/bpf.c: Update expected output.
+---
+ xlat/bpf_prog_types.in | 1 +
+ 1 files changed, 1 insertions(+)
+
+diff --git a/xlat/bpf_prog_types.in b/xlat/bpf_prog_types.in
+index 77b864e..d32ca7f 100644
+--- a/xlat/bpf_prog_types.in
++++ b/xlat/bpf_prog_types.in
+@@ -19,3 +19,4 @@ BPF_PROG_TYPE_SK_MSG 16
+ BPF_PROG_TYPE_RAW_TRACEPOINT 17
+ BPF_PROG_TYPE_LWT_SEG6LOCAL 18
+ BPF_PROG_TYPE_LIRC_MODE2 19
++BPF_PROG_TYPE_SK_REUSEPORT 20
+-- 
+1.7.12.4
+

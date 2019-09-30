@@ -1,0 +1,37 @@
+From 99300f217b7870fcaa752e1350a33cf98d61a993 Mon Sep 17 00:00:00 2001
+From: Zhibin Li <08826794brmt@gmail.com>
+Date: Wed, 1 Aug 2018 17:53:57 +0800
+Subject: [PATCH 005/293] evdev: fix decoding of bit sets
+
+According to drivers/input/evdev.c:bits_to_user(),
+the Linux kernel returns the number of bytes, not bits.
+
+* evdev.c (decode_bitset_): Treat syscall return value as the number
+of bytes.
+
+Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+Fixes: v4.10~89 "Add decoding for evdev ioctls"
+---
+ evdev.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/evdev.c b/evdev.c
+index 7ca15c9..3c1aaa8 100644
+--- a/evdev.c
++++ b/evdev.c
+@@ -171,10 +171,10 @@ decode_bitset_(struct tcb *const tcp, const kernel_ulong_t arg,
+ 	tprints(", ");
+ 
+ 	unsigned int size;
+-	if ((kernel_ulong_t) tcp->u_rval > max_nr)
++	if ((kernel_ulong_t) tcp->u_rval > max_nr / 8)
+ 		size = max_nr;
+ 	else
+-		size = tcp->u_rval;
++		size = tcp->u_rval * 8;
+ 	char decoded_arg[size];
+ 
+ 	if (umove_or_printaddr(tcp, arg, &decoded_arg))
+-- 
+17.12.4
+

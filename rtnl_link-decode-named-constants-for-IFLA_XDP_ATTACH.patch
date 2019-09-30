@@ -1,0 +1,129 @@
+From d029a5efd1e8bc5273473f0a7991a5d93f10f5cf Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 11:31:34 +0200
+Subject: [PATCH 025/293] rtnl_link: decode named constants for
+ IFLA_XDP_ATTACHED attribute value
+
+* xlat/rtnl_ifla_xdp_attached_mode.in: New file.
+* rtnl_link.c: Include "xlat/rtnl_ifla_xdp_attached_mode.h".
+(decode_ifla_xdp_attached): New function.
+(ifla_xdp_nla_decoders) <[IFLA_XDP_ATTACHED]>: Use
+decode_ifla_xdp_attached instead of decode_nla_u8.
+* tests/nlattr_ifla_xdp.c: Add checks for IFLA_XDP_ATTACHED decoding.
+---
+ rtnl_link.c                         | 20 +++++++++++++++++++-
+ tests/nlattr_ifla_xdp.c             | 30 ++++++++++++++++++++++++++++++
+ xlat/rtnl_ifla_xdp_attached_mode.in |  6 ++++++
+ 3 files changed, 55 insertions(+), 1 deletion(-)
+ create mode 100644 xlat/rtnl_ifla_xdp_attached_mode.in
+
+diff --git a/rtnl_link.c b/rtnl_link.c
+index 6f63d7f..2421088 100644
+--- a/rtnl_link.c
++++ b/rtnl_link.c
+@@ -54,6 +54,7 @@
+ #include "xlat/rtnl_ifla_info_data_tun_attrs.h"
+ #include "xlat/rtnl_ifla_port_attrs.h"
+ #include "xlat/rtnl_ifla_vf_port_attrs.h"
++#include "xlat/rtnl_ifla_xdp_attached_mode.h"
+ #include "xlat/rtnl_ifla_xdp_attrs.h"
+ #include "xlat/rtnl_link_attrs.h"
+ #include "xlat/snmp_icmp6_stats.h"
+@@ -574,9 +575,26 @@ decode_ifla_xdp_flags(struct tcb *const tcp,
+ 	return true;
+ }
+ 
++bool
++decode_ifla_xdp_attached(struct tcb *const tcp,
++			 const kernel_ulong_t addr,
++			 const unsigned int len,
++			 const void *const opaque_data)
++{
++	const struct decode_nla_xlat_opts opts = {
++		.xlat = rtnl_ifla_xdp_attached_mode,
++		.xlat_size = ARRAY_SIZE(rtnl_ifla_xdp_attached_mode),
++		.xt = XT_INDEXED,
++		.dflt = "XDP_ATTACHED_???",
++		.size = 1,
++	};
++
++	return decode_nla_xval(tcp, addr, len, &opts);
++}
++
+ static const nla_decoder_t ifla_xdp_nla_decoders[] = {
+ 	[IFLA_XDP_FD]		= decode_nla_fd,
+-	[IFLA_XDP_ATTACHED]	= decode_nla_u8,
++	[IFLA_XDP_ATTACHED]	= decode_ifla_xdp_attached,
+ 	[IFLA_XDP_FLAGS]	= decode_ifla_xdp_flags,
+ 	[IFLA_XDP_PROG_ID]	= decode_nla_u32,
+ 	[IFLA_XDP_DRV_PROG_ID]  = decode_nla_u32,
+diff --git a/tests/nlattr_ifla_xdp.c b/tests/nlattr_ifla_xdp.c
+index c98f8a3..a44b798 100644
+--- a/tests/nlattr_ifla_xdp.c
++++ b/tests/nlattr_ifla_xdp.c
+@@ -44,6 +44,10 @@ enum { IFLA_XDP = 43 };
+ # define IFLA_XDP_FD 1
+ #endif
+ 
++#ifndef IFLA_XDP_ATTACHED
++# define IFLA_XDP_ATTACHED 2
++#endif
++
+ #ifndef IFLA_XDP_PROG_ID
+ # define IFLA_XDP_PROG_ID 4
+ #endif
+@@ -60,6 +64,14 @@ enum { IFLA_XDP = 43 };
+ # define IFLA_XDP_HW_PROG_ID 7
+ #endif
+ 
++#ifndef XDP_ATTACHED_NONE
++# define XDP_ATTACHED_NONE 0
++#endif
++
++#ifndef XDP_ATTACHED_MULTI
++# define XDP_ATTACHED_MULTI 4
++#endif
++
+ #define IFLA_ATTR IFLA_XDP
+ #include "nlattr_ifla.h"
+ 
+@@ -81,6 +93,24 @@ main(void)
+ 				  IFLA_XDP_FD, pattern, num,
+ 				  printf("%d", num));
+ 
++	static const struct {
++		uint8_t val;
++		const char *str;
++	} attach_types[] = {
++		{ ARG_STR(XDP_ATTACHED_NONE) },
++		{ ARG_STR(XDP_ATTACHED_MULTI) },
++		{ ARG_STR(0x5)  " /* XDP_ATTACHED_??? */" },
++		{ ARG_STR(0xfe) " /* XDP_ATTACHED_??? */" },
++	};
++
++	for (size_t i = 0; i < ARRAY_SIZE(attach_types); i++) {
++		TEST_NESTED_NLATTR_OBJECT(fd, nlh0, hdrlen,
++					  init_ifinfomsg, print_ifinfomsg,
++					  IFLA_XDP_ATTACHED, pattern,
++					  attach_types[i].val,
++					  printf("%s", attach_types[i].str));
++	}
++
+ #ifdef XDP_FLAGS_UPDATE_IF_NOEXIST
+ 	const uint32_t flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+ 	TEST_NESTED_NLATTR_OBJECT(fd, nlh0, hdrlen,
+diff --git a/xlat/rtnl_ifla_xdp_attached_mode.in b/xlat/rtnl_ifla_xdp_attached_mode.in
+new file mode 100644
+index 0000000..f374230
+--- /dev/null
++++ b/xlat/rtnl_ifla_xdp_attached_mode.in
+@@ -0,0 +1,6 @@
++#value_indexed
++XDP_ATTACHED_NONE	0
++XDP_ATTACHED_DRV	1
++XDP_ATTACHED_SKB	2
++XDP_ATTACHED_HW		3
++XDP_ATTACHED_MULTI	4
+-- 
+1.7.12.4
+

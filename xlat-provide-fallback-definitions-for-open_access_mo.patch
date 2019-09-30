@@ -1,0 +1,28 @@
+From a5918bf7e6b1ff8283f78814216ce29177205dbb Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Fri, 31 Aug 2018 09:08:08 +0200
+Subject: [PATCH 073/293] xlat: provide fallback definitions for
+ open_access_modes constants
+
+* xlat/open_access_modes.in: Add fallback values.
+---
+ xlat/open_access_modes.in | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/xlat/open_access_modes.in b/xlat/open_access_modes.in
+index 423a29b..45dcd73 100644
+--- a/xlat/open_access_modes.in
++++ b/xlat/open_access_modes.in
+@@ -1,4 +1,5 @@
+-O_RDONLY
+-O_WRONLY
+-O_RDWR
+-O_ACCMODE
++#value_indexed
++O_RDONLY	0
++O_WRONLY	1
++O_RDWR		2
++O_ACCMODE	3
+-- 
+1.7.12.4
+

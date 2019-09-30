@@ -1,0 +1,69 @@
+From 8a56b8a1b7c2f49ed90d152a1ff765214016c95a Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 27 Aug 2018 21:26:04 +0200
+Subject: [PATCH 064/293] ioprio: move constant definitions to xlat
+
+* xlat/ioprio_class.in: Add fallback values.
+* xlat/ioprio_who.in: Likewise.
+* ioprio.c: Remove IOPRIO_WHO_* and IOPRIO_CLASS_* enums.
+---
+ ioprio.c             | 14 --------------
+ xlat/ioprio_class.in |  9 ++++-----
+ xlat/ioprio_who.in   |  7 +++----
+ 3 files changed, 7 insertions(+), 23 deletions(-)
+
+diff --git a/ioprio.c b/ioprio.c
+index 19ea74c..a9d4288 100644
+--- a/ioprio.c
++++ b/ioprio.c
+@@ -29,21 +29,7 @@
+ #include "defs.h"
+ #include "xstring.h"
+ 
+-enum {
+-	IOPRIO_WHO_PROCESS = 1,
+-	IOPRIO_WHO_PGRP,
+-	IOPRIO_WHO_USER
+-};
+-
+ #include "xlat/ioprio_who.h"
+-
+-enum {
+-	IOPRIO_CLASS_NONE,
+-	IOPRIO_CLASS_RT,
+-	IOPRIO_CLASS_BE,
+-	IOPRIO_CLASS_IDLE
+-};
+-
+ #include "xlat/ioprio_class.h"
+ 
+ #define IOPRIO_CLASS_SHIFT	(13)
+diff --git a/xlat/ioprio_class.in b/xlat/ioprio_class.in
+index 5020e5a..f7a3ed2 100644
+--- a/xlat/ioprio_class.in
++++ b/xlat/ioprio_class.in
+@@ -1,5 +1,4 @@
+-#unconditional
+-IOPRIO_CLASS_NONE
+-IOPRIO_CLASS_RT
+-IOPRIO_CLASS_BE
+-IOPRIO_CLASS_IDLE
++IOPRIO_CLASS_NONE	0
++IOPRIO_CLASS_RT		1
++IOPRIO_CLASS_BE		2
++IOPRIO_CLASS_IDLE	3
+diff --git a/xlat/ioprio_who.in b/xlat/ioprio_who.in
+index 20b1bd1..dfb967c 100644
+--- a/xlat/ioprio_who.in
++++ b/xlat/ioprio_who.in
+@@ -1,4 +1,3 @@
+-#unconditional
+-IOPRIO_WHO_PROCESS
+-IOPRIO_WHO_PGRP
+-IOPRIO_WHO_USER
++IOPRIO_WHO_PROCESS	1
++IOPRIO_WHO_PGRP		2
++IOPRIO_WHO_USER		3
+-- 
+1.7.12.4
+

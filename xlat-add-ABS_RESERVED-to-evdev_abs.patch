@@ -1,0 +1,28 @@
+From 0954bf0ec84c356d95dac302d1e1922e5847b4f3 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Thu, 1 Nov 2018 18:10:06 +0100
+Subject: [PATCH 184/293] xlat: add ABS_RESERVED to evdev_abs
+
+* xlat/evdev_abs.in (ABS_RESERVED): New constant, introduced by Linux
+commit v4.20-rc1~133^2~2^2.
+
+Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+---
+ xlat/evdev_abs.in | 1 +
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/xlat/evdev_abs.in b/xlat/evdev_abs.in
+index d65b846..e2d6900 100644
+--- a/xlat/evdev_abs.in
++++ b/xlat/evdev_abs.in
+@@ -25,6 +25,7 @@ ABS_TILT_Y		0x1b
+ ABS_TOOL_WIDTH		0x1c
+ ABS_VOLUME		0x20
+ ABS_MISC		0x28
++ABS_RESERVED		0x2e
+ ABS_MT_SLOT		0x2f
+ ABS_MT_TOUCH_MAJOR	0x30
+ ABS_MT_TOUCH_MINOR	0x31
+-- 
+1.7.12.4
+

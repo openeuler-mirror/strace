@@ -1,0 +1,37 @@
+From fdfc68a98460114755e95b9a3a9a66ef083f9a2f Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 27 Aug 2018 15:15:20 +0200
+Subject: [PATCH 051/293] xlat: provide fallback values for socktypes
+
+* xlat/socktypes.in: Provide fallback values.
+---
+ xlat/socktypes.in | 19 ++++++++++++-------
+ 1 file changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/xlat/socktypes.in b/xlat/socktypes.in
+index 4b3eadc..678c2da 100644
+--- a/xlat/socktypes.in
++++ b/xlat/socktypes.in
+@@ -1,7 +1,12 @@
+-SOCK_STREAM
+-SOCK_DGRAM
+-SOCK_RAW
+-SOCK_RDM
+-SOCK_SEQPACKET
+-SOCK_DCCP
+-SOCK_PACKET
++#ifdef __mips__
++SOCK_DGRAM	1
++SOCK_STREAM	2
++#else
++SOCK_STREAM	1
++SOCK_DGRAM	2
++#endif
++SOCK_RAW	3
++SOCK_RDM	4
++SOCK_SEQPACKET	5
++SOCK_DCCP	6
++SOCK_PACKET	10
+-- 
+1.7.12.4
+

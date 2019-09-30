@@ -1,0 +1,27 @@
+From 6b141f643aa60fb9bd8ba1ad551a0e020c04555e Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 11:38:51 +0200
+Subject: [PATCH 026/293] xlat: add AUDIT_INTEGRITY_POLICY_RULE to
+ nl_audit_types.in
+
+* xlat/nl_audit_types.in (AUDIT_INTEGRITY_POLICY_RULE): New constant,
+introduced by Linux commit v4.19-rc1~124^2~5.
+---
+ xlat/nl_audit_types.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xlat/nl_audit_types.in b/xlat/nl_audit_types.in
+index a9d7622..afba5cd 100644
+--- a/xlat/nl_audit_types.in
++++ b/xlat/nl_audit_types.in
+@@ -109,6 +109,7 @@ AUDIT_INTEGRITY_HASH	1803
+ AUDIT_INTEGRITY_PCR	1804
+ AUDIT_INTEGRITY_RULE	1805
+ AUDIT_INTEGRITY_EVM_XATTR	1806
++AUDIT_INTEGRITY_POLICY_RULE	1807
+ 
+ AUDIT_KERNEL	2000
+ 
+-- 
+1.7.12.4
+

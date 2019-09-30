@@ -1,0 +1,27 @@
+From 3926f4a07da13ef0adcd330b2d8d8b21eac2fa19 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 15:39:54 +0200
+Subject: [PATCH 036/293] xlat: update bpf_map_types.in
+
+* xlat/bpf_map_types.in (BPF_MAP_TYPE_CGROUP_STORAGE): New constant,
+introduced by Linux commit v4.19-rc1~140^2~108^2~3^2~12.
+(BPF_MAP_TYPE_REUSEPORT_SOCKARRAY): New constant, introduced by Linux
+commit v4.19-rc1~140^2~24^2~2^2~6.
+* tests/bpf.c: Update expected output.
+---
+ xlat/bpf_map_types.in | 2 ++
+ 1 files changed, 2 insertions(+)
+
+diff --git a/xlat/bpf_map_types.in b/xlat/bpf_map_types.in
+index 24c2fe9..e227382 100644
+--- a/xlat/bpf_map_types.in
++++ b/xlat/bpf_map_types.in
+@@ -18,3 +18,5 @@ BPF_MAP_TYPE_SOCKMAP 15
+ BPF_MAP_TYPE_CPUMAP 16
+ BPF_MAP_TYPE_XSKMAP 17
+ BPF_MAP_TYPE_SOCKHASH 18
++BPF_MAP_TYPE_CGROUP_STORAGE 19
++BPF_MAP_TYPE_REUSEPORT_SOCKARRAY 20
+-- 
+1.7.12.4
+

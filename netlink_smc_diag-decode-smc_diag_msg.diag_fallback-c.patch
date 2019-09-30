@@ -1,0 +1,93 @@
+From f7d175b562bda6c36f5d7303e497d0fd7cbf4cdd Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 11:56:21 +0200
+Subject: [PATCH 029/293] netlink_smc_diag: decode smc_diag_msg.diag_fallback
+ constant names
+
+Introduced by Linux commit v4.19-rc1~140^2~285^2~4.
+
+* xlat/smc_diag_mode.in: New file.
+* netlink_smc_diag.c: Include "xlat/smc_diag_mode.h".
+(decode_smc_diag_msg): Print diag_fallback field using smc_diag_mode
+xlat.
+* tests/netlink_sock_diag.c (test_smc_diag_msg): Update expected output.
+* tests/nlattr_smc_diag_msg.c (print_smc_diag_msg): Likewise.
+---
+ netlink_smc_diag.c          | 5 ++++-
+ tests/netlink_sock_diag.c   | 4 ++--
+ tests/nlattr_smc_diag_msg.c | 2 +-
+ xlat/smc_diag_mode.in       | 4 ++++
+ 4 files changed, 11 insertions(+), 4 deletions(-)
+ create mode 100644 xlat/smc_diag_mode.in
+
+diff --git a/netlink_smc_diag.c b/netlink_smc_diag.c
+index 42369ad..c2e2c66 100644
+--- a/netlink_smc_diag.c
++++ b/netlink_smc_diag.c
+@@ -45,6 +45,7 @@
+ 
+ # include "xlat/smc_diag_attrs.h"
+ # include "xlat/smc_diag_extended_flags.h"
++# include "xlat/smc_diag_mode.h"
+ # include "xlat/smc_link_group_roles.h"
+ # include "xlat/smc_states.h"
+ 
+@@ -190,7 +191,9 @@ DECL_NETLINK_DIAG_DECODER(decode_smc_diag_msg)
+ 					 (void *) &msg + offset)) {
+ 			PRINT_FIELD_XVAL("", msg, diag_state,
+ 					 smc_states, "SMC_???");
+-			PRINT_FIELD_U(", ", msg, diag_fallback);
++			PRINT_FIELD_XVAL_INDEX(", ", msg, diag_fallback,
++					       smc_diag_mode,
++					       "SMC_DIAG_MODE_???");
+ 			PRINT_FIELD_U(", ", msg, diag_shutdown);
+ 			/*
+ 			 * AF_SMC protocol family socket handler
+diff --git a/tests/netlink_sock_diag.c b/tests/netlink_sock_diag.c
+index 880069f..dfe3526 100644
+--- a/tests/netlink_sock_diag.c
++++ b/tests/netlink_sock_diag.c
+@@ -609,7 +609,7 @@ test_smc_diag_msg(const int fd)
+ 	struct smc_diag_msg msg = {
+ 		.diag_family = AF_SMC,
+ 		.diag_state = SMC_ACTIVE,
+-		.diag_fallback = 0xde,
++		.diag_fallback = 0x1,
+ 		.diag_shutdown = 0xba,
+ 		.id = {
+ 			.idiag_sport = 0xdead,
+@@ -630,7 +630,7 @@ test_smc_diag_msg(const int fd)
+ 		       SOCK_DIAG_BY_FAMILY, NLM_F_DUMP, msg,
+ 		       printf("{diag_family=AF_SMC"),
+ 		       printf(", diag_state=SMC_ACTIVE");
+-		       PRINT_FIELD_U(", ", msg, diag_fallback);
++		       printf(", diag_fallback=SMC_DIAG_MODE_FALLBACK_TCP");
+ 		       PRINT_FIELD_U(", ", msg, diag_shutdown);
+ 		       printf(", id={idiag_sport=htons(%u)"
+ 			      ", idiag_dport=htons(%u)"
+diff --git a/tests/nlattr_smc_diag_msg.c b/tests/nlattr_smc_diag_msg.c
+index 227ade0..1389027 100644
+--- a/tests/nlattr_smc_diag_msg.c
++++ b/tests/nlattr_smc_diag_msg.c
+@@ -77,7 +77,7 @@ print_smc_diag_msg(const unsigned int msg_len)
+ 	printf("{len=%u, type=SOCK_DIAG_BY_FAMILY"
+ 	       ", flags=NLM_F_DUMP, seq=0, pid=0}"
+ 	       ", {diag_family=AF_SMC, diag_state=SMC_ACTIVE"
+-	       ", diag_fallback=0, diag_shutdown=0"
++	       ", diag_fallback=SMC_DIAG_MODE_SMCR, diag_shutdown=0"
+ 	       ", id={idiag_sport=htons(0), idiag_dport=htons(0)"
+ 	       ", idiag_src=inet_addr(\"%s\")"
+ 	       ", idiag_dst=inet_addr(\"%s\")"
+diff --git a/xlat/smc_diag_mode.in b/xlat/smc_diag_mode.in
+new file mode 100644
+index 0000000..4ac3963
+--- /dev/null
++++ b/xlat/smc_diag_mode.in
+@@ -0,0 +1,4 @@
++#value_indexed
++SMC_DIAG_MODE_SMCR		0
++SMC_DIAG_MODE_FALLBACK_TCP	1
++SMC_DIAG_MODE_SMCD		2
+-- 
+1.7.12.4
+

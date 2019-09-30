@@ -1,0 +1,24 @@
+From 930864b0834e400ace10337a2a6dfd8ee71f7f20 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 15:42:13 +0200
+Subject: [PATCH 037/293] xlat: add IPSTATS_MIB_REASM_OVERLAPS to
+ snmp_ip_stats_mib.in
+
+* xlat/snmp_ip_stats.in (IPSTATS_MIB_REASM_OVERLAPS): New constant,
+introduced by Linux commit v4.19-rc1~140^2~128^2~2.
+---
+ xlat/snmp_ip_stats.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xlat/snmp_ip_stats.in b/xlat/snmp_ip_stats.in
+index 4bfb7ee..7de755d 100644
+--- a/xlat/snmp_ip_stats.in
++++ b/xlat/snmp_ip_stats.in
+@@ -35,3 +35,4 @@ IPSTATS_MIB_NOECTPKTS		32
+ IPSTATS_MIB_ECT1PKTS		33
+ IPSTATS_MIB_ECT0PKTS		34
+ IPSTATS_MIB_CEPKTS		35
++IPSTATS_MIB_REASM_OVERLAPS	36
+-- 
+1.7.12.4
+

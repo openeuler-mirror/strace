@@ -1,0 +1,26 @@
+From 45afd0c7a36a4edf486f0001507871d39c76560b Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 21:44:51 +0200
+Subject: [PATCH 044/293] xlat: add SOL_XDP to socketlayers.in
+
+* xlat/socketlayers.in (SOL_XDP): New constant, introduced by Linux
+commit v4.18-rc1~114^2~304^2~4^2~14.
+---
+ xlat/socketlayers.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xlat/socketlayers.in b/xlat/socketlayers.in
+index 0dfa446..0ff09d8 100644
+--- a/xlat/socketlayers.in
++++ b/xlat/socketlayers.in
+@@ -37,6 +37,7 @@ SOL_ALG		279
+ SOL_NFC		280
+ SOL_KCM		281
+ SOL_TLS		282
++SOL_XDP		283
+ #if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SOL_SOCKET	0xffff
+ #endif
+-- 
+1.7.12.4
+

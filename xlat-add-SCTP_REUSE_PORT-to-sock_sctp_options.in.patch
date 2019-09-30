@@ -1,0 +1,26 @@
+From f9578731fcabf329c1d5deb05afd12d2b8c61974 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 09:59:01 +0200
+Subject: [PATCH 020/293] xlat: add SCTP_REUSE_PORT to sock_sctp_options.in
+
+* xlat/sock_sctp_options.in (SCTP_REUSE_PORT): New constant, introduced
+by Linux commit v4.19-rc1~140^2~518.
+---
+ xlat/sock_sctp_options.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xlat/sock_sctp_options.in b/xlat/sock_sctp_options.in
+index bbb914e..db13680 100644
+--- a/xlat/sock_sctp_options.in
++++ b/xlat/sock_sctp_options.in
+@@ -34,6 +34,7 @@ SCTP_RECVRCVINFO		32
+ SCTP_RECVNXTINFO		33
+ SCTP_DEFAULT_SNDINFO		34
+ SCTP_AUTH_DEACTIVATE_KEY	35
++SCTP_REUSE_PORT			36
+ /* linux specific things */
+ SCTP_SOCKOPT_BINDX_ADD		100
+ SCTP_SOCKOPT_BINDX_REM		101
+-- 
+1.7.12.4
+

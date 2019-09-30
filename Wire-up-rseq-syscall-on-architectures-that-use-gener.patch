@@ -1,0 +1,38 @@
+From 0b051a218d5e7e51677c26c691dcf619a7d894e9 Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Mon, 11 Feb 2019 23:35:07 +0000
+Subject: [PATCH 229/293] Wire up rseq syscall on architectures that use
+ generic unistd.h
+
+* linux/32/syscallent.h [293]: Wire up rseq syscall introduced by linux
+commit v4.19-rc1~109^2~47.
+* linux/64/syscallent.h [293]: Likewise.
+---
+ linux/32/syscallent.h | 1 +
+ linux/64/syscallent.h | 1 +
+ 3 files changed, 4 insertions(+)
+
+diff --git a/linux/32/syscallent.h b/linux/32/syscallent.h
+index 901b889..145f07b 100644
+--- a/linux/32/syscallent.h
++++ b/linux/32/syscallent.h
+@@ -290,6 +290,7 @@
+ [290] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
+ [291] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
+ [292] = { 6,	0,		SEN(io_pgetevents),		"io_pgetevents"		},
++[293] = { 4,	0,		SEN(rseq),			"rseq"			},
+ 
+ #undef sys_ARCH_mmap
+ #undef ARCH_WANT_SYNC_FILE_RANGE2
+diff --git a/linux/64/syscallent.h b/linux/64/syscallent.h
+index d08b161..1c4b80d 100644
+--- a/linux/64/syscallent.h
++++ b/linux/64/syscallent.h
+@@ -283,3 +283,4 @@
+ [290] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
+ [291] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
+ [292] = { 6,	0,		SEN(io_pgetevents),		"io_pgetevents"		},
++[293] = { 4,	0,		SEN(rseq),			"rseq"			},
+-- 
+1.7.12.4
+

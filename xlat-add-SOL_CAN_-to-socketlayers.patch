@@ -1,0 +1,31 @@
+From 88863bf3edd7ab1e1a7ccfd64569f44bb15f1b86 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 15 Oct 2018 17:32:01 +0200
+Subject: [PATCH 173/293] xlat: add SOL_CAN_* to socketlayers
+
+* xlat/socketlayers.in (SOL_CAN_BASE): New constant, introduced by Linux
+commit v2.6.25-rc1~1162^2~1414.
+(SOL_CAN_RAW): New constant, introduced by Linux commit
+v2.6.25-rc1~1162^2~1413.
+
+Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+---
+ xlat/socketlayers.in | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/xlat/socketlayers.in b/xlat/socketlayers.in
+index 0ff09d8..fd44dd1 100644
+--- a/xlat/socketlayers.in
++++ b/xlat/socketlayers.in
+@@ -7,6 +7,8 @@ SOL_TCP		6
+ SOL_UDP		17
+ SOL_IPV6	41
+ SOL_ICMPV6	58
++SOL_CAN_BASE	100
++SOL_CAN_RAW	101
+ SOL_SCTP	132
+ SOL_UDPLITE	136
+ SOL_RAW		255
+-- 
+1.7.12.4
+

@@ -1,0 +1,29 @@
+From cde23ff80c6ffbb89bdeafa74c6926680ddbce54 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 11:41:16 +0200
+Subject: [PATCH 027/293] xlat: update nt_descriptor_types.in
+
+* xlat/nt_descriptor_types.in (NT_VMCOREDD): New named constant,
+introduced by Linux commit v4.18-rc1~114^2~252^2~2.
+(NT_MIPS_DSP): New named constant, introduced by Linux commit
+v4.19-rc1~42^2~63.
+(NT_MIPS_FP_MODE): New named constant, introduced by Linux commit
+v4.19-rc1~42^2~62.
+---
+ xlat/nt_descriptor_types.in | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/xlat/nt_descriptor_types.in b/xlat/nt_descriptor_types.in
+index d90b870..34decc0 100644
+--- a/xlat/nt_descriptor_types.in
++++ b/xlat/nt_descriptor_types.in
+@@ -61,3 +61,6 @@ NT_METAG_CBUF	0x500
+ NT_METAG_RPIPE	0x501
+ NT_METAG_TLS	0x502
+ NT_ARC_V2	0x600
++NT_VMCOREDD	0x700
++NT_MIPS_DSP	0x800
++NT_MIPS_FP_MODE	0x801
+-- 
+1.7.12.4
+

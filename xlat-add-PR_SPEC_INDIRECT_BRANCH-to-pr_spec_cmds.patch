@@ -1,0 +1,140 @@
+From 38ea49ad111f8a622756e62bc99cab6ce515dc27 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Fri, 14 Dec 2018 17:25:24 +0100
+Subject: [PATCH 186/293] xlat: add PR_SPEC_INDIRECT_BRANCH to pr_spec_cmds
+
+* xlat/pr_spec_cmds.in (PR_SPEC_INDIRECT_BRANCH): New constant,
+introduced by Linux commit v4.20-rc5~4^2~3.
+* prctl.c (SYS_FUNC(prctl)) <case PR_GET_SPECULATION_CTRL, case
+PR_SET_SPECULATION_CTRL>: Add PR_SPEC_INDIRECT_BRANCH handling.
+* tests/prctl-spec-inject.c (main): Add PR_SPEC_INDIRECT_BRANCH decoding
+checks, update expected output.
+* NEWS: Mention this.
+
+Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+---
+ prctl.c                   |  2 ++
+ tests/prctl-spec-inject.c | 51 +++++++++++++++++++++++++++++------------------
+ xlat/pr_spec_cmds.in      |  2 ++
+ 4 files changed, 37 insertions(+), 20 deletions(-)
+
+diff --git a/prctl.c b/prctl.c
+index 669f263..7516510 100644
+--- a/prctl.c
++++ b/prctl.c
+@@ -221,6 +221,7 @@ SYS_FUNC(prctl)
+ 
+ 		switch (arg2) {
+ 		case PR_SPEC_STORE_BYPASS:
++		case PR_SPEC_INDIRECT_BRANCH:
+ 			tcp->auxstr = sprintflags("",
+ 						  pr_spec_get_store_bypass_flags,
+ 						  (kernel_ulong_t) tcp->u_rval);
+@@ -393,6 +394,7 @@ SYS_FUNC(prctl)
+ 
+ 		switch (arg2) {
+ 		case PR_SPEC_STORE_BYPASS:
++		case PR_SPEC_INDIRECT_BRANCH:
+ 			printxval64(pr_spec_set_store_bypass_flags, arg3,
+ 				    "PR_SPEC_???");
+ 			break;
+diff --git a/tests/prctl-spec-inject.c b/tests/prctl-spec-inject.c
+index 1247c3c..04403b4 100644
+--- a/tests/prctl-spec-inject.c
++++ b/tests/prctl-spec-inject.c
+@@ -40,6 +40,15 @@ main(int argc, char **argv)
+ 		(kernel_ulong_t) 0xdeadfacebadc0dedULL;
+ 	static const kernel_ulong_t bogus_arg3 =
+ 		(kernel_ulong_t) 0xdecafeedbeefda7eULL;
++
++	static const struct {
++		long arg;
++		const char *str;
++	} spec_strs[] = {
++		{ 0, "PR_SPEC_STORE_BYPASS" },
++		{ 1, "PR_SPEC_INDIRECT_BRANCH" },
++	};
++
+ 	static const struct {
+ 		long arg;
+ 		const char *str;
+@@ -78,8 +87,8 @@ main(int argc, char **argv)
+ 	injected_val = strtol(argv[1], NULL, 0);
+ 
+ 	/* PR_GET_SPECULATION_CTRL */
+-	rc = do_prctl(52, 1, bogus_arg3);
+-	printf("prctl(PR_GET_SPECULATION_CTRL, 0x1 /* PR_SPEC_??? */) "
++	rc = do_prctl(52, 2, bogus_arg3);
++	printf("prctl(PR_GET_SPECULATION_CTRL, 0x2 /* PR_SPEC_??? */) "
+ 	       "= %s (INJECTED)\n", sprintrc(rc));
+ 
+ 	rc = do_prctl(52, bogus_arg2, bogus_arg3);
+@@ -87,24 +96,26 @@ main(int argc, char **argv)
+ 	       "= %s (INJECTED)\n",
+ 	       (unsigned long long) bogus_arg2, sprintrc(rc));
+ 
+-	rc = do_prctl(52, 0, bogus_arg3);
++	for (unsigned c = 0; c < ARRAY_SIZE(spec_strs); c++) {
++		rc = do_prctl(52, spec_strs[c].arg, bogus_arg3);
+ 
+-	for (unsigned i = 0; i < ARRAY_SIZE(get_strs); i++) {
+-		if (get_strs[i].arg == rc) {
+-			str = get_strs[i].str;
+-			break;
++		for (unsigned i = 0; i < ARRAY_SIZE(get_strs); i++) {
++			if (get_strs[i].arg == rc) {
++				str = get_strs[i].str;
++				break;
++			}
+ 		}
+-	}
+-	if (!str)
+-		error_msg_and_fail("Unknown return value: %ld", rc);
++		if (!str)
++			error_msg_and_fail("Unknown return value: %ld", rc);
+ 
+-	printf("prctl(PR_GET_SPECULATION_CTRL, PR_SPEC_STORE_BYPASS) "
+-	       "= %s%s (INJECTED)\n", sprintrc(rc), str);
++		printf("prctl(PR_GET_SPECULATION_CTRL, %s) = %s%s (INJECTED)\n",
++		       spec_strs[c].str, sprintrc(rc), str);
++	}
+ 
+ 
+ 	/* PR_SET_SPECULATION_CTRL*/
+-	rc = do_prctl(53, 1, bogus_arg3);
+-	printf("prctl(PR_SET_SPECULATION_CTRL, 0x1 /* PR_SPEC_??? */, %#llx) "
++	rc = do_prctl(53, 2, bogus_arg3);
++	printf("prctl(PR_SET_SPECULATION_CTRL, 0x2 /* PR_SPEC_??? */, %#llx) "
+ 	       "= %s (INJECTED)\n",
+ 	       (unsigned long long) bogus_arg3, sprintrc(rc));
+ 
+@@ -115,11 +126,13 @@ main(int argc, char **argv)
+ 	       (unsigned long long) bogus_arg3,
+ 	       sprintrc(rc));
+ 
+-	for (unsigned i = 0; i < ARRAY_SIZE(set_strs); i++) {
+-		rc = do_prctl(53, 0, set_strs[i].arg);
+-		printf("prctl(PR_SET_SPECULATION_CTRL, PR_SPEC_STORE_BYPASS"
+-		       ", %s) = %s (INJECTED)\n",
+-		       set_strs[i].str, sprintrc(rc));
++	for (unsigned c = 0; c < ARRAY_SIZE(spec_strs); c++) {
++		for (unsigned i = 0; i < ARRAY_SIZE(set_strs); i++) {
++			rc = do_prctl(53, spec_strs[c].arg, set_strs[i].arg);
++			printf("prctl(PR_SET_SPECULATION_CTRL, %s"
++			       ", %s) = %s (INJECTED)\n",
++			       spec_strs[c].str, set_strs[i].str, sprintrc(rc));
++		}
+ 	}
+ 
+ 	puts("+++ exited with 0 +++");
+diff --git a/xlat/pr_spec_cmds.in b/xlat/pr_spec_cmds.in
+index e006923..8e5ded0 100644
+--- a/xlat/pr_spec_cmds.in
++++ b/xlat/pr_spec_cmds.in
+@@ -1 +1,3 @@
++#value_indexed
+ PR_SPEC_STORE_BYPASS	0
++PR_SPEC_INDIRECT_BRANCH	1
+-- 
+1.7.12.4
+

@@ -1,0 +1,42 @@
+From 24535be245597cef39e9e26ae963df199f25a45d Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 15:31:11 +0200
+Subject: [PATCH 035/293] rtnl_link: add IFLA_MIN_MTU and IFLA_MAX_MTU
+ attributes
+
+Introduced by Linux commit v4.19-rc1~140^2~205^2~1.
+
+* rtnl_link.c (ifinfomsg_nla_decoders) <[IFLA_MIN_MTU], [IFLA_MAX_MTU]>:
+New decoder, calls decode_nla_u32.
+* xlat/rtnl_link_attrs.in (IFLA_MIN_MTU, IFLA_MAX_MTU): New constant.
+---
+ rtnl_link.c             | 2 ++
+ xlat/rtnl_link_attrs.in | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/rtnl_link.c b/rtnl_link.c
+index 67ac7d1..41c5efb 100644
+--- a/rtnl_link.c
++++ b/rtnl_link.c
+@@ -903,6 +903,8 @@ static const nla_decoder_t ifinfomsg_nla_decoders[] = {
+ 	[IFLA_CARRIER_UP_COUNT]	= decode_nla_u32,
+ 	[IFLA_CARRIER_DOWN_COUNT]	= decode_nla_u32,
+ 	[IFLA_NEW_IFINDEX]	= decode_nla_ifindex,
++	[IFLA_MIN_MTU]		= decode_nla_u32,
++	[IFLA_MAX_MTU]		= decode_nla_u32,
+ };
+ 
+ DECL_NETLINK_ROUTE_DECODER(decode_ifinfomsg)
+diff --git a/xlat/rtnl_link_attrs.in b/xlat/rtnl_link_attrs.in
+index 9ba08ad..1c0fa2d 100644
+--- a/xlat/rtnl_link_attrs.in
++++ b/xlat/rtnl_link_attrs.in
+@@ -48,3 +48,5 @@ IFLA_IF_NETNSID		46
+ IFLA_CARRIER_UP_COUNT	47
+ IFLA_CARRIER_DOWN_COUNT	48
+ IFLA_NEW_IFINDEX	49
++IFLA_MIN_MTU		50
++IFLA_MAX_MTU		51
+-- 
+1.7.12.4
+

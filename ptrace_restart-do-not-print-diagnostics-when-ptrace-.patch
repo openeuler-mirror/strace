@@ -1,0 +1,41 @@
+From e0632590bdc041ef937ecf0491d6cd1504dec36f Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 11 Feb 2019 00:57:38 +0100
+Subject: [PATCH 227/293] ptrace_restart: do not print diagnostics when ptrace
+ returns ESRCH
+
+After some discussion, it was decided that the situation
+when the tracee is gone does not worth reporting.
+
+* strace.c (ptrace_restart): Return early if ptrace returned ESRCH.
+
+Resolves: https://bugzilla.redhat.com/show_bug.cgi?id=1662936
+---
+ strace.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/strace.c b/strace.c
+index e083cc3..ce89d5c 100644
+--- a/strace.c
++++ b/strace.c
+@@ -366,7 +366,7 @@ ptrace_restart(const unsigned int op, struct tcb *const tcp, unsigned int sig)
+ 	errno = 0;
+ 	ptrace(op, tcp->pid, 0L, (unsigned long) sig);
+ 	err = errno;
+-	if (!err)
++	if (!err || err == ESRCH)
+ 		return 0;
+ 
+ 	/*
+@@ -383,8 +383,6 @@ ptrace_restart(const unsigned int op, struct tcb *const tcp, unsigned int sig)
+ 			tcp->pid, ptrace_op_str(op), strerror(err));
+ 		line_ended();
+ 	}
+-	if (err == ESRCH)
+-		return 0;
+ 	errno = err;
+ 	perror_msg("ptrace(%s,pid:%d,sig:%u)",
+ 		   ptrace_op_str(op), tcp->pid, sig);
+-- 
+1.7.12.4
+

@@ -1,0 +1,68 @@
+From b05d2667e96718416997d2f39828647e677211d9 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 27 Aug 2018 21:20:51 +0200
+Subject: [PATCH 052/293] xlat: provide fallback definitions to pollflags
+
+* xlat/pollflags.in: Add fallback definitions for POLLWRNORM,
+POLLWRBAND, POLLMSG, POLLREMOVE, and POLLRDHUP.
+---
+ xlat/pollflags.in | 42 +++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 35 insertions(+), 7 deletions(-)
+
+diff --git a/xlat/pollflags.in b/xlat/pollflags.in
+index 3140011..8081e78 100644
+--- a/xlat/pollflags.in
++++ b/xlat/pollflags.in
+@@ -1,14 +1,42 @@
+ POLLIN		0x0001
+ POLLPRI		0x0002
+ POLLOUT		0x0004
+-POLLRDNORM	0x0040
+-POLLWRNORM
+-POLLRDBAND	0x0080
+-POLLWRBAND
+ POLLERR		0x0008
+ POLLHUP		0x0010
+ POLLNVAL	0x0020
+-POLLMSG
+-POLLREMOVE
+-POLLRDHUP
++POLLRDNORM	0x0040
++POLLRDBAND	0x0080
++
++#if defined(__m68k__) || defined(__mips__) || defined(__sparc__) || defined(__xtensa__)
++/* POLLWRNORM	POLLOUT */
++#else
++POLLWRNORM	0x0100
++#endif
++
++#if defined(__m68k__) || defined(__mips__) || defined(__sparc__) || defined(__xtensa__)
++POLLWRBAND	0x0100
++#else
++POLLWRBAND	0x0200
++#endif
++
++#if defined(__sparc__)
++POLLMSG		0x0200
++#else
++POLLMSG		0x0400
++#endif
++
++#if defined(__sparc__)
++POLLREMOVE	0x0400
++#elif defined(__xtensa__)
++POLLREMOVE	0x0800
++#else
++POLLREMOVE	0x1000
++#endif
++
++#if defined(__sparc__)
++POLLRDHUP	0x0800
++#else
++POLLRDHUP	0x2000
++#endif
++
+ POLL_BUSY_LOOP	0x8000
+-- 
+1.7.12.4
+

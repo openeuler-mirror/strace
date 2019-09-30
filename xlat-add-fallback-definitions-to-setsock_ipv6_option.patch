@@ -1,0 +1,26 @@
+From 6c9cfeaaa44dc524263572f535be7d011318c5f8 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 15 Oct 2018 17:56:42 +0200
+Subject: [PATCH 174/293] xlat: add fallback definitions to
+ setsock_ipv6_options
+
+* xlat/setsock_ipv6_options.in: Add fallback definitions.
+---
+ xlat/setsock_ipv6_options.in | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xlat/setsock_ipv6_options.in b/xlat/setsock_ipv6_options.in
+index 087a176..5a42cdf 100644
+--- a/xlat/setsock_ipv6_options.in
++++ b/xlat/setsock_ipv6_options.in
+@@ -4,5 +4,5 @@
+  * should be in sock_ipv6_options.in instead.
+  */
+ 
+-IP6T_SO_SET_REPLACE
+-IP6T_SO_SET_ADD_COUNTERS
++IP6T_SO_SET_REPLACE		64
++IP6T_SO_SET_ADD_COUNTERS	65
+-- 
+1.7.12.4
+

@@ -1,0 +1,64 @@
+From 43700247534bee217cdf1ec553558c4dcf158335 Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Wed, 24 Oct 2018 09:05:38 +0000
+Subject: [PATCH 091/293] arm, sparc, sparc64: wire up io_pgetevents
+
+* linux/arm/syscallent.h ([399]): Wire up io_pgetevents syscall
+introduced by Linux commit v4.19-rc7~24^2~1.
+(ARM_FIRST_SHUFFLED_SYSCALL, SYS_socket_subcall): Raise from 400 to 500,
+to make room for new syscalls.
+* linux/sparc/syscallent.h ([361]): Wire up io_pgetevents syscall
+introduced by Linux commit v4.19~31^2~5.
+* linux/sparc64/syscallent.h: Likewise.
+---
+ linux/arm/syscallent.h     | 5 +++--
+ linux/sparc/syscallent.h   | 1 +
+ linux/sparc64/syscallent.h | 1 +
+ 3 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/linux/arm/syscallent.h b/linux/arm/syscallent.h
+index 568d946..4577db8 100644
+--- a/linux/arm/syscallent.h
++++ b/linux/arm/syscallent.h
+@@ -424,11 +424,12 @@
+ [396] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
+ [397] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
+ [398] = { 4,	0,		SEN(rseq),			"rseq"			},
++[399] = { 6,	0,		SEN(io_pgetevents),		"io_pgetevents"		},
+ 
+ #ifdef __ARM_EABI__
+-# define ARM_FIRST_SHUFFLED_SYSCALL 400
++# define ARM_FIRST_SHUFFLED_SYSCALL 500
+ #else
+-# define SYS_socket_subcall	400
++# define SYS_socket_subcall	500
+ # include "subcall.h"
+ # define ARM_FIRST_SHUFFLED_SYSCALL (SYS_ipc_subcall + SYS_ipc_nsubcalls)
+ #endif /* !__ARM_EABI__ */
+diff --git a/linux/sparc/syscallent.h b/linux/sparc/syscallent.h
+index b6a378a..4c409b4 100644
+--- a/linux/sparc/syscallent.h
++++ b/linux/sparc/syscallent.h
+@@ -359,6 +359,7 @@
+ [358] = { 6,	TD,		SEN(preadv2),			"preadv2"		},
+ [359] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
+ [360] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
++[361] = { 6,	0,		SEN(io_pgetevents),		"io_pgetevents"		},
+ 
+ #define SYS_socket_subcall	400
+ #include "subcall.h"
+diff --git a/linux/sparc64/syscallent.h b/linux/sparc64/syscallent.h
+index fc2e921..a3a2858 100644
+--- a/linux/sparc64/syscallent.h
++++ b/linux/sparc64/syscallent.h
+@@ -357,6 +357,7 @@
+ [358] = { 6,	TD,		SEN(preadv2),			"preadv2"		},
+ [359] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
+ [360] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
++[361] = { 6,	0,		SEN(io_pgetevents),		"io_pgetevents"		},
+ 
+ #define SYS_socket_subcall	400
+ #include "subcall.h"
+-- 
+1.7.12.4
+

@@ -1,0 +1,110 @@
+From 14a9b6ca66109fc1231eb16e98a9ce4262fb610c Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Tue, 12 Mar 2019 11:17:20 +0000
+Subject: [PATCH 269/293] bpf: add support for btf_* fields in BPF_MAP_CREATE
+
+* bpf_attr.h (struct BPF_MAP_CREATE_struct): Add btf_fd,
+btf_key_type_id, and btf_value_type_id fields.
+* bpf.c (BEGIN_BPF_CMD_DECODER(BPF_MAP_CREATE)): Decode btf_fd,
+btf_key_type_id, and btf_value_type_id fields introduced by Linux
+commits v4.18-rc1~114^2~417^2~1^2~3 and v4.18-rc1~114^2~148^2~7^2~2.
+* tests/bpf.c (BPF_MAP_CREATE_checks): Check it.
+* tests/bpf-obj_get_info_by_fd.c (print_map_create): Update expected
+output.
+---
+ bpf.c                          | 10 ++++++++++
+ bpf_attr.h                     |  5 ++++-
+ tests/bpf-obj_get_info_by_fd.c |  4 ++++
+ tests/bpf.c                    | 20 ++++++++++++++++++++
+ 4 files changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/bpf.c b/bpf.c
+index 6fb4c2c..bf7cd6c 100644
+--- a/bpf.c
++++ b/bpf.c
+@@ -232,6 +232,16 @@ BEGIN_BPF_CMD_DECODER(BPF_MAP_CREATE)
+ 	if (len <= offsetof(struct BPF_MAP_CREATE_struct, map_ifindex))
+ 		break;
+ 	PRINT_FIELD_IFINDEX(", ", attr, map_ifindex);
++
++	/*
++	 * The following three fields were introduced by Linux commits
++	 * v4.18-rc1~114^2~417^2~1^2~3 and v4.18-rc1~114^2~148^2~7^2~2.
++	 */
++	if (len <= offsetof(struct BPF_MAP_CREATE_struct, btf_fd))
++		break;
++	PRINT_FIELD_FD(", ", attr, btf_fd, tcp);
++	PRINT_FIELD_U(", ", attr, btf_key_type_id);
++	PRINT_FIELD_U(", ", attr, btf_value_type_id);
+ }
+ END_BPF_CMD_DECODER(RVAL_DECODED | RVAL_FD)
+ 
+diff --git a/bpf_attr.h b/bpf_attr.h
+index cb49896..a789d10 100644
+--- a/bpf_attr.h
++++ b/bpf_attr.h
+@@ -65,11 +65,14 @@ struct BPF_MAP_CREATE_struct {
+ 	uint32_t numa_node;
+ 	char     map_name[BPF_OBJ_NAME_LEN];
+ 	uint32_t map_ifindex;
++	uint32_t btf_fd;
++	uint32_t btf_key_type_id;
++	uint32_t btf_value_type_id;
+ };
+ 
+ #define BPF_MAP_CREATE_struct_size \
+ 	sizeof(struct BPF_MAP_CREATE_struct)
+-#define expected_BPF_MAP_CREATE_struct_size 48
++#define expected_BPF_MAP_CREATE_struct_size 60
+ 
+ struct BPF_MAP_LOOKUP_ELEM_struct {
+ 	uint32_t map_fd;
+diff --git a/tests/bpf-obj_get_info_by_fd.c b/tests/bpf-obj_get_info_by_fd.c
+index ff06e27..02d14e5 100644
+--- a/tests/bpf-obj_get_info_by_fd.c
++++ b/tests/bpf-obj_get_info_by_fd.c
+@@ -103,6 +103,10 @@ print_map_create(void *attr_void, size_t size, long rc)
+ 		printf(", map_name=\"test_map\"");
+ 	if (size > offsetof(struct BPF_MAP_CREATE_struct, map_ifindex))
+ 		printf(", map_ifindex=0");
++	if (size > offsetof(struct BPF_MAP_CREATE_struct, btf_fd)) {
++		printf(", btf_fd=0</dev/null>"
++		       ", btf_key_type_id=0, btf_value_type_id=0");
++	}
+ 	printf("}, %zu) = ", size);
+ 	if (rc >= 0)
+ 		printf("%ld<anon_inode:bpf-map>\n", rc);
+diff --git a/tests/bpf.c b/tests/bpf.c
+index cfed319..b18a056 100644
+--- a/tests/bpf.c
++++ b/tests/bpf.c
+@@ -420,6 +420,26 @@ static struct bpf_attr_check BPF_MAP_CREATE_checks[] = {
+ 		       ", map_ifindex=" IFINDEX_LO_STR,
+ 		.init_fn = init_BPF_MAP_CREATE_attr7,
+ 	},
++	{ /* 8 */
++		.data = { .BPF_MAP_CREATE_data = {
++			.btf_fd = 0xbadc0ded,
++			.btf_key_type_id = 0xfacefeed,
++			.btf_value_type_id = 0xcafef00d
++		} },
++		.size = offsetofend(struct BPF_MAP_CREATE_struct,
++				    btf_value_type_id),
++		.str = "map_type=BPF_MAP_TYPE_UNSPEC"
++		       ", key_size=0"
++		       ", value_size=0"
++		       ", max_entries=0"
++		       ", map_flags=0"
++		       ", inner_map_fd=0"
++		       ", map_name=\"\""
++		       ", map_ifindex=0"
++		       ", btf_fd=-1159983635"
++		       ", btf_key_type_id=4207869677"
++		       ", btf_value_type_id=3405705229"
++	},
+ };
+ 
+ static const struct bpf_attr_check BPF_MAP_LOOKUP_ELEM_checks[] = {
+-- 
+1.7.12.4
+

@@ -1,0 +1,25 @@
+From ed29ac33bbe541cc10c51bef57cd76011df39e5d Mon Sep 17 00:00:00 2001
+From: Zhibin Li <08826794brmt@gmail.com>
+Date: Fri, 10 Aug 2018 20:17:38 +0800
+Subject: [PATCH 008/293] tests: enhance test coverage of evdev ioctl
+
+* tests/ioctl_evdev.c (main): Test EVIOCGMTSLOTS(8) command.
+---
+ tests/ioctl_evdev.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tests/ioctl_evdev.c b/tests/ioctl_evdev.c
+index 071b6b0..d6f50ac 100644
+--- a/tests/ioctl_evdev.c
++++ b/tests/ioctl_evdev.c
+@@ -114,6 +114,7 @@ main(void)
+ 	TEST_NULL_ARG(EVIOCGLED(0));
+ # ifdef EVIOCGMTSLOTS
+ 	TEST_NULL_ARG(EVIOCGMTSLOTS(0));
++	TEST_NULL_ARG(EVIOCGMTSLOTS(8));
+ # endif
+ # ifdef EVIOCGPROP
+ 	TEST_NULL_ARG(EVIOCGPROP(0));
+-- 
+1.7.12.4
+

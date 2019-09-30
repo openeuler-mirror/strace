@@ -1,0 +1,41 @@
+From fb7c51690e8e62204c25c3ee205bd4dd0f78f1ed Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 15:29:06 +0200
+Subject: [PATCH 033/293] rtnl_netconf: add NETCONFA_BC_FORWARDING attribute
+
+Introduced by Linux commit v4.19-rc1~140^2~208^2~1.
+
+* rtnl_netconf.c (netconfmsg_nla_decoders) <[NETCONFA_BC_FORWARDING]>:
+New decoder, calls decode_nla_s32.
+* xlat/rtnl_netconf_attrs.in (NETCONFA_BC_FORWARDING): New constant.
+---
+ rtnl_netconf.c             | 3 ++-
+ xlat/rtnl_netconf_attrs.in | 1 +
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/rtnl_netconf.c b/rtnl_netconf.c
+index f01c543..9c750d4 100644
+--- a/rtnl_netconf.c
++++ b/rtnl_netconf.c
+@@ -47,7 +47,8 @@ static const nla_decoder_t netconfmsg_nla_decoders[] = {
+ 	[NETCONFA_MC_FORWARDING]		= decode_nla_s32,
+ 	[NETCONFA_PROXY_NEIGH]			= decode_nla_s32,
+ 	[NETCONFA_IGNORE_ROUTES_WITH_LINKDOWN]	= decode_nla_s32,
+-	[NETCONFA_INPUT]			= decode_nla_s32
++	[NETCONFA_INPUT]			= decode_nla_s32,
++	[NETCONFA_BC_FORWARDING]		= decode_nla_s32,
+ };
+ 
+ DECL_NETLINK_ROUTE_DECODER(decode_netconfmsg)
+diff --git a/xlat/rtnl_netconf_attrs.in b/xlat/rtnl_netconf_attrs.in
+index b376b78..285398f 100644
+--- a/xlat/rtnl_netconf_attrs.in
++++ b/xlat/rtnl_netconf_attrs.in
+@@ -6,3 +6,4 @@ NETCONFA_MC_FORWARDING			4
+ NETCONFA_PROXY_NEIGH			5
+ NETCONFA_IGNORE_ROUTES_WITH_LINKDOWN	6
+ NETCONFA_INPUT				7
++NETCONFA_BC_FORWARDING			8
+-- 
+1.7.12.4
+

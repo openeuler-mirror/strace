@@ -1,0 +1,41 @@
+From 25a73fb12f5693b4382a8405c297faf9ecd0a9cb Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Sat, 5 Jan 2019 21:14:42 +0000
+Subject: [PATCH 199/293] xlat: update KERN_* constants
+
+* xlat/sysctl_kern.in (KERN_PANIC_ON_WARN, KERN_PANIC_PRINT): New
+constants introduced by Linux kernel commits v3.19-rc1~135^2~91
+and v5.0-rc1~38^2~16, respectively.
+* configure.ac (AC_CHECK_DECLS): Add them.
+* NEWS: Mention this.
+---
+ configure.ac        | 2 ++
+ xlat/sysctl_kern.in | 2 ++
+ 3 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 8045ebd..9bf64c3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -645,6 +645,8 @@ AC_CHECK_DECLS(m4_normalize([
+ 	KERN_MAX_LOCK_DEPTH,
+ 	KERN_NMI_WATCHDOG,
+ 	KERN_PANIC_ON_NMI,
++	KERN_PANIC_ON_WARN,
++	KERN_PANIC_PRINT,
+ 	NET_LLC,
+ 	NET_NETFILTER,
+ 	NET_DCCP,
+diff --git a/xlat/sysctl_kern.in b/xlat/sysctl_kern.in
+index b0568ce..f920f1f 100644
+--- a/xlat/sysctl_kern.in
++++ b/xlat/sysctl_kern.in
+@@ -66,3 +66,5 @@ KERN_COMPAT_LOG
+ KERN_MAX_LOCK_DEPTH
+ KERN_NMI_WATCHDOG
+ KERN_PANIC_ON_NMI
++KERN_PANIC_ON_WARN
++KERN_PANIC_PRINT
+-- 
+1.7.12.4
+

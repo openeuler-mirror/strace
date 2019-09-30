@@ -1,0 +1,137 @@
+From df7dd5aa664e499058039f7526a51adc376e9756 Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 15:20:33 +0200
+Subject: [PATCH 032/293] netlink_smc_diag: add SMC_DIAG_FALLBACK attribute
+ support
+
+Introduced by Linux commit v4.19-rc1~140^2~253^2~1.
+
+* linux/smc_diag.h (SMC_DIAG_FALLBACK): New enumeration item.
+(struct smc_diag_fallback): New type definition.
+* netlink_smc_diag.c: Include "xlat/smc_decl_codes.h".
+(decode_smc_diag_fallback): New function.
+(smc_diag_msg_nla_decoders) <[SMC_DIAG_FALLBACK]>: New decoder, calls
+decode_smc_diag_fallback.
+* tests/nlattr_smc_diag_msg.c: Add checks for SMC_DIAG_FALLBACK
+attribute decoding.
+* xlat/smc_decl_codes.in: New file.
+* xlat/smc_diag_attrs.in (SMC_DIAG_FALLBACK): New constant.
+---
+ linux/smc_diag.h            |  7 +++++++
+ netlink_smc_diag.c          | 29 +++++++++++++++++++++++++++++
+ xlat/smc_decl_codes.in      | 17 +++++++++++++++++
+ xlat/smc_diag_attrs.in      |  1 +
+ 4 files changed, 54 insertions(+)
+ create mode 100644 xlat/smc_decl_codes.in
+
+diff --git a/linux/smc_diag.h b/linux/smc_diag.h
+index 287cb55..ebdbe8c 100644
+--- a/linux/smc_diag.h
++++ b/linux/smc_diag.h
+@@ -31,6 +31,7 @@ enum {
+ 	SMC_DIAG_LGRINFO,
+ 	SMC_DIAG_SHUTDOWN,
+ 	SMC_DIAG_DMBINFO,
++	SMC_DIAG_FALLBACK,
+ };
+ 
+ /* SMC_DIAG_CONNINFO */
+@@ -82,4 +83,10 @@ struct smcd_diag_dmbinfo {
+ 	uint64_t ATTRIBUTE_ALIGNED(8) peer_token;
+ };
+ 
++/* SMC_DIAG_FALLBACK */
++struct smc_diag_fallback {
++	uint32_t reason;
++	uint32_t peer_diagnosis;
++};
++
+ #endif /* !STRACE_LINUX_SMC_DIAG_H */
+diff --git a/netlink_smc_diag.c b/netlink_smc_diag.c
+index c2e2c66..b9293a9 100644
+--- a/netlink_smc_diag.c
++++ b/netlink_smc_diag.c
+@@ -43,6 +43,7 @@
+ # include <arpa/inet.h>
+ # include <linux/smc_diag.h>
+ 
++# include "xlat/smc_decl_codes.h"
+ # include "xlat/smc_diag_attrs.h"
+ # include "xlat/smc_diag_extended_flags.h"
+ # include "xlat/smc_diag_mode.h"
+@@ -169,12 +170,40 @@ decode_smc_diag_dmbinfo(struct tcb *const tcp,
+ 
+ 	return true;
+ }
++static bool
++decode_smc_diag_fallback(struct tcb *const tcp,
++			 const kernel_ulong_t addr,
++			 const unsigned int len,
++			 const void *const opaque_data)
++{
++	struct smc_diag_fallback fb;
++
++	if (len < sizeof(fb))
++		return false;
++	if (umove_or_printaddr(tcp, addr, &fb))
++		return true;
++
++	/*
++	 * We print them verbose since they are defined in a non-UAPI header,
++	 * net/smc/smc_clc.h
++	 */
++	tprints("{reason=");
++	printxval_search_ex(smc_decl_codes, fb.reason,
++			    "SMC_CLC_DECL_???");
++	tprints(", peer_diagnosis=");
++	printxval_search_ex(smc_decl_codes, fb.peer_diagnosis,
++			    "SMC_CLC_DECL_???");
++	tprints("}");
++
++	return true;
++}
+ 
+ static const nla_decoder_t smc_diag_msg_nla_decoders[] = {
+ 	[SMC_DIAG_CONNINFO]	= decode_smc_diag_conninfo,
+ 	[SMC_DIAG_LGRINFO]	= decode_smc_diag_lgrinfo,
+ 	[SMC_DIAG_SHUTDOWN]	= decode_nla_u8,
+ 	[SMC_DIAG_DMBINFO]      = decode_smc_diag_dmbinfo,
++	[SMC_DIAG_FALLBACK]	= decode_smc_diag_fallback,
+ };
+ 
+ DECL_NETLINK_DIAG_DECODER(decode_smc_diag_msg)
+diff --git a/xlat/smc_decl_codes.in b/xlat/smc_decl_codes.in
+new file mode 100644
+index 0000000..d7810f8
+--- /dev/null
++++ b/xlat/smc_decl_codes.in
+@@ -0,0 +1,17 @@
++/* sorted */
++SMC_CLC_DECL_MEM	0x01010000
++SMC_CLC_DECL_TIMEOUT_CL	0x02010000
++SMC_CLC_DECL_TIMEOUT_AL	0x02020000
++SMC_CLC_DECL_CNFERR	0x03000000
++SMC_CLC_DECL_PEERNOSMC	0x03010000
++SMC_CLC_DECL_IPSEC	0x03020000
++SMC_CLC_DECL_NOSMCDEV	0x03030000
++SMC_CLC_DECL_MODEUNSUPP	0x03040000
++SMC_CLC_DECL_RMBE_EC	0x03050000
++SMC_CLC_DECL_OPTUNSUPP	0x03060000
++SMC_CLC_DECL_SYNCERR	0x04000000
++SMC_CLC_DECL_PEERDECL	0x05000000
++SMC_CLC_DECL_INTERR	0x99990000
++SMC_CLC_DECL_ERR_RTOK	0x99990001
++SMC_CLC_DECL_ERR_RDYLNK	0x99990002
++SMC_CLC_DECL_ERR_REGRMB	0x99990003
+diff --git a/xlat/smc_diag_attrs.in b/xlat/smc_diag_attrs.in
+index 023f398..8d0ebeb 100644
+--- a/xlat/smc_diag_attrs.in
++++ b/xlat/smc_diag_attrs.in
+@@ -4,3 +4,4 @@ SMC_DIAG_CONNINFO
+ SMC_DIAG_LGRINFO
+ SMC_DIAG_SHUTDOWN
+ SMC_DIAG_DMBINFO
++SMC_DIAG_FALLBACK
+-- 
+1.7.12.4
+

@@ -1,0 +1,30 @@
+From 3f10639284bf60b939a3b7cc8cb54d0f57937d9b Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 27 Aug 2018 12:32:42 +0200
+Subject: [PATCH 050/293] xlat: provide fallback values to route_nexthop_flags
+
+* xlat/route_nexthop_flags.in: Add fallback values.
+---
+ xlat/route_nexthop_flags.in | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/xlat/route_nexthop_flags.in b/xlat/route_nexthop_flags.in
+index 907515e..a64a988 100644
+--- a/xlat/route_nexthop_flags.in
++++ b/xlat/route_nexthop_flags.in
+@@ -1,6 +1,6 @@
+-RTNH_F_DEAD
+-RTNH_F_PERVASIVE
+-RTNH_F_ONLINK
+-RTNH_F_OFFLOAD
+-RTNH_F_LINKDOWN
+-RTNH_F_UNRESOLVED
++RTNH_F_DEAD		1
++RTNH_F_PERVASIVE	2
++RTNH_F_ONLINK		4
++RTNH_F_OFFLOAD		8
++RTNH_F_LINKDOWN		16
++RTNH_F_UNRESOLVED	32
+-- 
+1.7.12.4
+

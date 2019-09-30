@@ -1,0 +1,31 @@
+From e78becf8b93d7cc7649864a1344ed1db0b86e50e Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Sun, 23 Sep 2018 09:54:55 +0000
+Subject: [PATCH 086/293] xlat: print _IOC_NONE in symbolic form even if it is
+ equal to 0
+
+On some architectures _IOC_NONE equals to 1, on others it is 0.
+Change the way how ioctl direction flags are printed so that
+_IOC_NONE is printed in symbolic form even if it is equal to 0.
+
+* xlat/ioctl_dirs.in (_IOC_NONE): Move to the head of the list.
+* tests/ioctl_inotify.c (main): Update expected output.
+* tests/ioctl_loop. (main): Likewise.c
+* tests/ioctl_perf.c (main): Likewise.
+* tests/ioctl_scsi.c (main): Likewise.
+---
+ xlat/ioctl_dirs.in    |  2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/xlat/ioctl_dirs.in b/xlat/ioctl_dirs.in
+index 4c97a86..c069dd7 100644
+--- a/xlat/ioctl_dirs.in
++++ b/xlat/ioctl_dirs.in
+@@ -1,3 +1,3 @@
++_IOC_NONE
+ _IOC_READ
+ _IOC_WRITE
+-_IOC_NONE
+-- 
+1.7.12.4
+

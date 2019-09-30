@@ -1,0 +1,145 @@
+From d1f90bcdc7cf95cf442321f18452d0367e80b7d5 Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Tue, 12 Mar 2019 11:17:20 +0000
+Subject: [PATCH 271/293] bpf: add support for *jited_ksyms and
+ *jited_func_lens fields in struct bpf_prog_info
+
+* bpf_attr.h (struct bpf_prog_info_struct): Add nr_jited_ksyms,
+nr_jited_func_lens, jited_ksyms, and jited_func_lens fields.
+* bpf.c (struct obj_get_info_saved): Likewise.
+(print_bpf_prog_info): Decode these fields introduced by Linux commits
+v4.18-rc1~114^2~148^2~3^2~6 and v4.18-rc1~114^2~148^2~3^2~2.
+* tests/bpf-obj_get_info_by_fd.c (main): Update expected output.
+---
+ bpf.c                          | 40 ++++++++++++++++++++++++++++++++++++++++
+ bpf_attr.h                     |  6 +++++-
+ tests/bpf-obj_get_info_by_fd.c | 21 +++++++++++++++++++++
+ 3 files changed, 66 insertions(+), 1 deletion(-)
+
+diff --git a/bpf.c b/bpf.c
+index 31bdd9b..c1a4e52 100644
+--- a/bpf.c
++++ b/bpf.c
+@@ -447,6 +447,11 @@ struct obj_get_info_saved {
+ 	uint32_t jited_prog_len;
+ 	uint32_t xlated_prog_len;
+ 	uint32_t nr_map_ids;
++	uint32_t nr_jited_ksyms;
++
++	uint32_t nr_jited_func_lens;
++	uint64_t jited_ksyms;
++	uint64_t jited_func_lens;
+ };
+ 
+ static void
+@@ -507,6 +512,10 @@ print_bpf_prog_info(struct tcb * const tcp, uint32_t bpf_fd,
+ 		saved->jited_prog_len = info.jited_prog_len;
+ 		saved->xlated_prog_len = info.xlated_prog_len;
+ 		saved->nr_map_ids = info.nr_map_ids;
++		saved->nr_jited_ksyms = info.nr_jited_ksyms;
++		saved->nr_jited_func_lens = info.nr_jited_func_lens;
++		saved->jited_ksyms = info.jited_ksyms;
++		saved->jited_func_lens = info.jited_func_lens;
+ 
+ 		return;
+ 	}
+@@ -569,6 +578,37 @@ print_bpf_prog_info(struct tcb * const tcp, uint32_t bpf_fd,
+ 	PRINT_FIELD_DEV(", ", info, netns_dev);
+ 	PRINT_FIELD_U(", ", info, netns_ino);
+ 
++	/*
++	 * The next four fields were introduced by Linux commits
++	 * v4.18-rc1~114^2~148^2~3^2~6 and v4.18-rc1~114^2~148^2~3^2~2.
++	 */
++	if (len <= offsetof(struct bpf_prog_info_struct, nr_jited_ksyms))
++		goto print_bpf_prog_info_end;
++
++	tprints(", nr_jited_ksyms=");
++	if (saved->nr_jited_ksyms != info.nr_jited_ksyms)
++		tprintf("%" PRIu32 " => ", saved->nr_jited_ksyms);
++	tprintf("%" PRIu32, info.nr_jited_ksyms);
++
++	tprints(", nr_jited_func_lens=");
++	if (saved->nr_jited_func_lens != info.nr_jited_func_lens)
++		tprintf("%" PRIu32 " => ", saved->nr_jited_func_lens);
++	tprintf("%" PRIu32, info.nr_jited_func_lens);
++
++	tprints(", jited_ksyms=");
++	if (saved->jited_ksyms != info.jited_ksyms) {
++		printaddr64(saved->jited_ksyms);
++		tprints(" => ");
++	}
++	printaddr64(info.jited_ksyms);
++
++	tprints(", jited_func_lens=");
++	if (saved->jited_func_lens != info.jited_func_lens) {
++		printaddr64(saved->jited_func_lens);
++		tprints(" => ");
++	}
++	printaddr64(info.jited_func_lens);
++
+ 	decode_attr_extra_data(tcp, info_buf, size, bpf_prog_info_struct_size);
+ 
+ print_bpf_prog_info_end:
+diff --git a/bpf_attr.h b/bpf_attr.h
+index 7da8af6..d23d464 100644
+--- a/bpf_attr.h
++++ b/bpf_attr.h
+@@ -289,10 +289,14 @@ struct bpf_prog_info_struct {
+ 	 */
+ 	uint64_t ATTRIBUTE_ALIGNED(8) netns_dev; /* skip check */
+ 	uint64_t ATTRIBUTE_ALIGNED(8) netns_ino; /* skip check */
++	uint32_t nr_jited_ksyms;
++	uint32_t nr_jited_func_lens;
++	uint64_t ATTRIBUTE_ALIGNED(8) jited_ksyms;
++	uint64_t ATTRIBUTE_ALIGNED(8) jited_func_lens;
+ };
+ 
+ #define bpf_prog_info_struct_size \
+ 	sizeof(struct bpf_prog_info_struct)
+-#define expected_bpf_prog_info_struct_size 104
++#define expected_bpf_prog_info_struct_size 128
+ 
+ #endif /* !STRACE_BPF_ATTR_H */
+diff --git a/tests/bpf-obj_get_info_by_fd.c b/tests/bpf-obj_get_info_by_fd.c
+index 5096f16..96c8837 100644
+--- a/tests/bpf-obj_get_info_by_fd.c
++++ b/tests/bpf-obj_get_info_by_fd.c
+@@ -366,6 +366,8 @@ main(void)
+ 
+ 	for (unsigned int i = 0; i < 4; i++) {
+ 		prog_info->jited_prog_len = 0;
++		prog_info->nr_jited_ksyms = 0;
++		prog_info->nr_jited_func_lens = 0;
+ 		switch (i) {
+ 		case 1:
+ 			prog_info->xlated_prog_insns =
+@@ -492,6 +494,25 @@ main(void)
+ 		    offsetof(struct bpf_prog_info_struct, netns_ino))
+ 			printf(", netns_ino=%" PRIu64, prog_info->netns_ino);
+ 
++		if (bpf_prog_get_info_attr.info_len >
++		    offsetof(struct bpf_prog_info_struct, nr_jited_ksyms)) {
++			printf(", nr_jited_ksyms=0");
++			if (prog_info->nr_jited_ksyms)
++				printf(" => %u", prog_info->nr_jited_ksyms);
++		}
++		if (bpf_prog_get_info_attr.info_len >
++		    offsetof(struct bpf_prog_info_struct, nr_jited_func_lens)) {
++			printf(", nr_jited_func_lens=0");
++			if (prog_info->nr_jited_func_lens)
++				printf(" => %u", prog_info->nr_jited_func_lens);
++		}
++		if (bpf_prog_get_info_attr.info_len >
++		    offsetof(struct bpf_prog_info_struct, jited_ksyms))
++			printf(", jited_ksyms=NULL");
++		if (bpf_prog_get_info_attr.info_len >
++		    offsetof(struct bpf_prog_info_struct, jited_func_lens))
++			printf(", jited_func_lens=NULL");
++
+ 		printf("}");
+ # else /* !VERBOSE */
+ 		printf("%p", prog_info);
+-- 
+1.7.12.4
+

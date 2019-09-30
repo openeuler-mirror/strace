@@ -1,0 +1,175 @@
+From ac2f6695cd896d9b33f9b39efb167db7fb893d2d Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Mon, 27 Aug 2018 21:34:06 +0200
+Subject: [PATCH 070/293] netlink_packet_diag: assorted decoding fixes
+
+* xlat/af_packet_versions.in: New file.
+* netlink_packet_diag.c: Include "xlat/af_packet_versions.h".
+(decode_packet_diag_req): sdiag_protocol shouldn't be decoded as a protocol,
+currently it should be set to 0.
+(decode_packet_diag_info): Decode pdi_version field using af_packet_versions
+xlat; decode pdi_index field as an interface index.
+(packet_diag_msg_nla_decoders) <PACKET_DIAG_UID>: Decode using
+decode_nla_uid.
+(decode_packet_diag_msg): Decode pdiag_num as an low-level protocol.
+* tests/netlink_sock_diag.c: Update expected output.
+* tests/nlattr_packet_diag_msg.c: Likewise.
+---
+ netlink_packet_diag.c          | 22 ++++++++++++++--------
+ tests/netlink_sock_diag.c      |  6 +++---
+ tests/nlattr_packet_diag_msg.c | 15 ++++++++-------
+ xlat/af_packet_versions.in     |  3 +++
+ 4 files changed, 28 insertions(+), 18 deletions(-)
+ create mode 100644 xlat/af_packet_versions.in
+
+diff --git a/netlink_packet_diag.c b/netlink_packet_diag.c
+index 18b7091..9794f56 100644
+--- a/netlink_packet_diag.c
++++ b/netlink_packet_diag.c
+@@ -37,6 +37,7 @@
+ #include <linux/sock_diag.h>
+ #include <linux/packet_diag.h>
+ 
++#include "xlat/af_packet_versions.h"
+ #include "xlat/packet_diag_attrs.h"
+ #include "xlat/packet_diag_info_flags.h"
+ #include "xlat/packet_diag_show.h"
+@@ -52,10 +53,11 @@ DECL_NETLINK_DIAG_DECODER(decode_packet_diag_req)
+ 		if (!umoven_or_printaddr(tcp, addr + offset,
+ 					 sizeof(req) - offset,
+ 					 (char *) &req + offset)) {
+-			tprints("sdiag_protocol=");
+-			printxval_searchn(ethernet_protocols,
+-					  ethernet_protocols_size,
+-					  req.sdiag_protocol, "ETH_P_???");
++			/*
++			 * AF_PACKET currently doesn't support protocol values
++			 * other than 0.
++			 */
++			PRINT_FIELD_X("", req, sdiag_protocol);
+ 			PRINT_FIELD_U(", ", req, pdiag_ino);
+ 			PRINT_FIELD_FLAGS(", ", req, pdiag_show,
+ 					  packet_diag_show, "PACKET_SHOW_???");
+@@ -79,8 +81,9 @@ decode_packet_diag_info(struct tcb *const tcp,
+ 	if (umove_or_printaddr(tcp, addr, &pinfo))
+ 		return true;
+ 
+-	PRINT_FIELD_U("{", pinfo, pdi_index);
+-	PRINT_FIELD_U(", ", pinfo, pdi_version);
++	PRINT_FIELD_IFINDEX("{", pinfo, pdi_index);
++	PRINT_FIELD_XVAL(", ", pinfo, pdi_version, af_packet_versions,
++			 "TPACKET_???");
+ 	PRINT_FIELD_U(", ", pinfo, pdi_reserve);
+ 	PRINT_FIELD_U(", ", pinfo, pdi_copy_thresh);
+ 	PRINT_FIELD_U(", ", pinfo, pdi_tstamp);
+@@ -172,7 +175,7 @@ static const nla_decoder_t packet_diag_msg_nla_decoders[] = {
+ 	[PACKET_DIAG_RX_RING]	= decode_packet_diag_ring,
+ 	[PACKET_DIAG_TX_RING]	= decode_packet_diag_ring,
+ 	[PACKET_DIAG_FANOUT]	= decode_nla_u32,
+-	[PACKET_DIAG_UID]	= decode_nla_u32,
++	[PACKET_DIAG_UID]	= decode_nla_uid,
+ 	[PACKET_DIAG_MEMINFO]	= decode_nla_meminfo,
+ 	[PACKET_DIAG_FILTER]	= decode_packet_diag_filter
+ };
+@@ -191,7 +194,10 @@ DECL_NETLINK_DIAG_DECODER(decode_packet_diag_msg)
+ 					 (char *) &msg + offset)) {
+ 			PRINT_FIELD_XVAL("", msg, pdiag_type,
+ 					 socktypes, "SOCK_???");
+-			PRINT_FIELD_U(", ", msg, pdiag_num);
++			PRINT_FIELD_XVAL_SORTED_SIZED(", ", msg, pdiag_num,
++						      ethernet_protocols,
++						      ethernet_protocols_size,
++						      "ETH_P_???");
+ 			PRINT_FIELD_U(", ", msg, pdiag_ino);
+ 			PRINT_FIELD_COOKIE(", ", msg, pdiag_cookie);
+ 			decode_nla = true;
+diff --git a/tests/netlink_sock_diag.c b/tests/netlink_sock_diag.c
+index dfe3526..6049253 100644
+--- a/tests/netlink_sock_diag.c
++++ b/tests/netlink_sock_diag.c
+@@ -338,7 +338,7 @@ test_packet_diag_req(const int fd)
+ 	TEST_SOCK_DIAG(fd, nlh0, AF_PACKET,
+ 		       SOCK_DIAG_BY_FAMILY, NLM_F_REQUEST, req,
+ 		       printf("{sdiag_family=AF_PACKET"),
+-		       printf(", sdiag_protocol=ETH_P_LOOP");
++		       printf(", sdiag_protocol=%#x", req.sdiag_protocol);
+ 		       PRINT_FIELD_U(", ", req, pdiag_ino);
+ 		       printf(", pdiag_show=PACKET_SHOW_INFO");
+ 		       PRINT_FIELD_COOKIE(", ", req, pdiag_cookie);
+@@ -351,7 +351,7 @@ test_packet_diag_msg(const int fd)
+ 	static const struct packet_diag_msg msg = {
+ 		.pdiag_family = AF_PACKET,
+ 		.pdiag_type = SOCK_STREAM,
+-		.pdiag_num = 0xbadc,
++		.pdiag_num = 0x9100,
+ 		.pdiag_ino = 0xfacefeed,
+ 		.pdiag_cookie = { 0xdeadbeef, 0xbadc0ded }
+ 	};
+@@ -360,7 +360,7 @@ test_packet_diag_msg(const int fd)
+ 		       SOCK_DIAG_BY_FAMILY, NLM_F_DUMP, msg,
+ 		       printf("{pdiag_family=AF_PACKET"),
+ 		       printf(", pdiag_type=SOCK_STREAM");
+-		       PRINT_FIELD_U(", ", msg, pdiag_num);
++		       printf(", pdiag_num=ETH_P_QINQ1");
+ 		       PRINT_FIELD_U(", ", msg, pdiag_ino);
+ 		       PRINT_FIELD_COOKIE(", ", msg, pdiag_cookie);
+ 		       printf("}"));
+diff --git a/tests/nlattr_packet_diag_msg.c b/tests/nlattr_packet_diag_msg.c
+index 016d052..6ac9907 100644
+--- a/tests/nlattr_packet_diag_msg.c
++++ b/tests/nlattr_packet_diag_msg.c
+@@ -51,7 +51,8 @@ init_packet_diag_msg(struct nlmsghdr *const nlh, const unsigned int msg_len)
+ 	struct packet_diag_msg *const msg = NLMSG_DATA(nlh);
+ 	SET_STRUCT(struct packet_diag_msg, msg,
+ 		.pdiag_family = AF_PACKET,
+-		.pdiag_type = SOCK_STREAM
++		.pdiag_type = SOCK_STREAM,
++		.pdiag_num = 3,
+ 	);
+ }
+ 
+@@ -61,7 +62,7 @@ print_packet_diag_msg(const unsigned int msg_len)
+ 	printf("{len=%u, type=SOCK_DIAG_BY_FAMILY"
+ 	       ", flags=NLM_F_DUMP, seq=0, pid=0}"
+ 	       ", {pdiag_family=AF_PACKET"
+-	       ", pdiag_type=SOCK_STREAM, pdiag_num=0"
++	       ", pdiag_type=SOCK_STREAM, pdiag_num=ETH_P_ALL"
+ 	       ", pdiag_ino=0, pdiag_cookie=[0, 0]}",
+ 	       msg_len);
+ }
+@@ -98,9 +99,9 @@ main(void)
+ {
+ 	skip_if_unavailable("/proc/self/fd/");
+ 
+-	static const struct packet_diag_info pinfo = {
+-		.pdi_index = 0xabcddafa,
+-		.pdi_version = 0xbabcdafb,
++	struct packet_diag_info pinfo = {
++		.pdi_index = ifindex_lo(),
++		.pdi_version = 2,
+ 		.pdi_reserve = 0xcfaacdaf,
+ 		.pdi_copy_thresh = 0xdabacdaf,
+ 		.pdi_tstamp = 0xeafbaadf,
+@@ -143,8 +144,8 @@ main(void)
+ 	TEST_NLATTR_OBJECT(fd, nlh0, hdrlen,
+ 			   init_packet_diag_msg, print_packet_diag_msg,
+ 			   PACKET_DIAG_INFO, pattern, pinfo,
+-			   PRINT_FIELD_U("{", pinfo, pdi_index);
+-			   PRINT_FIELD_U(", ", pinfo, pdi_version);
++			   printf("{pdi_index=%s", IFINDEX_LO_STR);
++			   printf(", pdi_version=TPACKET_V3");
+ 			   PRINT_FIELD_U(", ", pinfo, pdi_reserve);
+ 			   PRINT_FIELD_U(", ", pinfo, pdi_copy_thresh);
+ 			   PRINT_FIELD_U(", ", pinfo, pdi_tstamp);
+diff --git a/xlat/af_packet_versions.in b/xlat/af_packet_versions.in
+new file mode 100644
+index 0000000..399cdf4
+--- /dev/null
++++ b/xlat/af_packet_versions.in
+@@ -0,0 +1,3 @@
++TPACKET_V1	0
++TPACKET_V2	1
++TPACKET_V3	2
+-- 
+1.7.12.4
+

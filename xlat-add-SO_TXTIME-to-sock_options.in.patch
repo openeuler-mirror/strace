@@ -1,0 +1,30 @@
+From db5235d0e930ac959cd62e3b022f94f3db7eae2a Mon Sep 17 00:00:00 2001
+From: Eugene Syromyatnikov <evgsyr@gmail.com>
+Date: Sun, 19 Aug 2018 10:54:51 +0200
+Subject: [PATCH 022/293] xlat: add SO_TXTIME to sock_options.in
+
+* xlat/sock_options.in (SO_TXTIME): New constant, introduced by Linux
+commit v4.19-rc1~140^2~465^2~12.
+---
+ xlat/sock_options.in | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/xlat/sock_options.in b/xlat/sock_options.in
+index 2d2d439..9f96d2d 100644
+--- a/xlat/sock_options.in
++++ b/xlat/sock_options.in
+@@ -445,3 +445,11 @@ SO_ZEROCOPY	16437
+ #else
+ SO_ZEROCOPY	60
+ #endif
++
++#if defined __sparc__
++SO_TXTIME	63
++#elif defined __hppa__
++SO_TXTIME	16438
++#else
++SO_TXTIME	61
++#endif
+-- 
+1.7.12.4
+

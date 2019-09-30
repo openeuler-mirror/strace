@@ -1,0 +1,34 @@
+From 6d6d5bc4807a2c09784dfa3290aa0b4128a5183b Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Date: Thu, 25 Oct 2018 13:36:54 +0000
+Subject: [PATCH 092/293] tests: fix build with recent kernel headers
+
+Linux commit v4.19-rc2-5-g2ecefa0a15fd0ef88b9cd5d15ceb813008136431
+changed the definition of struct keyctl_dh_params in an incompatible
+way again.  Workaround this issue by using designated initializers.
+
+* tests/keyctl.c (main): Use designated initializers for
+struct keyctl_dh_params.
+---
+ tests/keyctl.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/tests/keyctl.c b/tests/keyctl.c
+index 881f24b..e53cdc4 100644
+--- a/tests/keyctl.c
++++ b/tests/keyctl.c
+@@ -312,7 +312,10 @@ main(void)
+ 	static const char *bogus_key3_str = "-557785390";
+ 
+ 	static const struct keyctl_dh_params kcdhp_data = {
+-		KEY_SPEC_GROUP_KEYRING, 1234567890, 3141592653U };
++		.private = KEY_SPEC_GROUP_KEYRING,
++		.prime = 1234567890,
++		.base = 3141592653U
++	};
+ 	static const char *kcdhp_str = "{private="
+ #if XLAT_RAW || XLAT_VERBOSE
+ 		"-6"
+-- 
+1.7.12.4
+
