@@ -2,8 +2,8 @@
 # This spec file is from upstream.
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 5.6
-Release: 2
+Version: 5.10
+Release: 1
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
 License: LGPL-2.1+ and GPL-2.0+
 # Some distros require Group tag to be present,
@@ -19,9 +19,6 @@ Source: strace-%{version}.tar.gz
 %endif
 BuildRequires: gcc gzip
 
-Patch0: backport-io_uring-Add-io_cqring_offset-flags.patch
-Patch1: backport-io_uring-Remove-struct-io_cqring_offsets-compile-tim.patch
-Patch2: backport-uring-fix-build-against-5.8-libc-headers.patch
 # Install Bluetooth headers for AF_BLUETOOTH sockets decoding.
 %if 0%{?fedora} >= 18 || 0%{?centos} >= 6 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1200 || 0%{?openEuler} >= 1
 BuildRequires: pkgconfig(bluez)
@@ -104,6 +101,9 @@ wait
 %{_mandir}/man1/*
 
 %changelog
+* Mon Feb 1 2021 xinghe <xinghe1@huawei.com> - 5.10-1
+- update to 5.10
+
 * Thu Nov 10 2020 xinghe <xinghe1@huawei.com> - 5.6-2
 - fix master build error
 
