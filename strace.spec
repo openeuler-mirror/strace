@@ -3,9 +3,9 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
 Version: 5.6
-Release: 1
+Release: 2
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
-License: LGPL-2.1+ and GPL-2.0+
+License: LGPL-2.0+ and GPL-2.0
 # Some distros require Group tag to be present,
 # some require Group tag to be absent,
 # some do not care about Group tag at all,
@@ -24,7 +24,10 @@ BuildRequires: gcc gzip
 BuildRequires: pkgconfig(bluez)
 %endif
 
-Patch9000:    huawei-strace-fix-failed-tests.patch
+Patch:    0000-strace-fix-failed-tests.patch
+Patch:    0001-io_uring-Remove-struct-io_cqring_offsets-compile-tim.patch
+Patch:    0002-io_uring-Add-io_cqring_offset-flags.patch
+Patch:    0003-build-regenerate-build-deps.patch
 
 # Install elfutils-devel or libdw-devel to enable strace -k option.
 # Install binutils-devel to enable symbol demangling.
@@ -101,6 +104,9 @@ echo 'END OF TEST SUITE INFORMATION'
 %{_mandir}/man1/*
 
 %changelog
+* Wed Apr 28 2021 fu.lin <fulin10@huawei.com> - 5.6-2
+- build: fix build error when the strace is builded in the environment with io_uring feature kernel devel package 
+
 * Fri Apr 24 2020 shikemeng<shikemeng@huawei.com> - 5.6-1
 - Upgrade strace version to 5.6
 
