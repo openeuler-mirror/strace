@@ -2,7 +2,7 @@
 # This spec file is from upstream.
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 5.10
+Version: 5.14
 Release: 1
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
 License: LGPL-2.1+ and GPL-2.0+
@@ -101,6 +101,9 @@ wait
 %{_mandir}/man1/*
 
 %changelog
+* Mon Nov 29 2021 zhouwenpei <zhouwenpei1@huawei.com> - 5.14-1
+- update to 5.14
+
 * Mon Feb 1 2021 xinghe <xinghe1@huawei.com> - 5.10-1
 - update to 5.10
 
