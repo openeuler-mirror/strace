@@ -107,7 +107,7 @@ wait
 * Mon Feb 1 2021 xinghe <xinghe1@huawei.com> - 5.10-1
 - update to 5.10
 
-* Thu Nov 10 2020 xinghe <xinghe1@huawei.com> - 5.6-2
+* Tue Nov 10 2020 xinghe <xinghe1@huawei.com> - 5.6-2
 - fix master build error
 
 * Sat Jul 25 2020 liuchao<liuchao173@huawei.com> - 5.6-1
