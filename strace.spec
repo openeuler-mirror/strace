@@ -3,7 +3,7 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
 Version: 5.14
-Release: 1
+Release: 2
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
 License: LGPL-2.1+ and GPL-2.0+
 # Some distros require Group tag to be present,
@@ -16,6 +16,9 @@ Source: https://strace.io/files/%{version}/strace-%{version}.tar.xz
 BuildRequires: xz
 %else
 Source: strace-%{version}.tar.gz
+%endif
+%ifarch sw_64
+Patch1: strace-5.14-sw.patch
 %endif
 BuildRequires: gcc gzip
 
@@ -101,6 +104,9 @@ wait
 %{_mandir}/man1/*
 
 %changelog
+* Tue Oct 25 2022 wuzx<wuzx1226@qq.com> - 5.14-2
+- Add sw64 architecture
+
 * Mon Nov 29 2021 zhouwenpei <zhouwenpei1@huawei.com> - 5.14-1
 - update to 5.14
 

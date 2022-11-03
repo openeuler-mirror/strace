@@ -1,0 +1,3333 @@
+diff -Nuar strace-5.14.org/build-aux/config.guess strace-5.14.sw/build-aux/config.guess
+--- strace-5.14.org/build-aux/config.guess	2022-06-10 08:46:52.490000000 +0000
++++ strace-5.14.sw/build-aux/config.guess	2022-06-10 16:06:38.390000000 +0000
+@@ -973,6 +973,14 @@
+ 	UNAME_MACHINE=aarch64_be
+ 	GUESS=$UNAME_MACHINE-unknown-linux-$LIBC
+ 	;;
++    sw_64:Linux:*:*)
++	case `sed -n '/^cpu model/s/^.*: \(.*\)/\1/p' /proc/cpuinfo 2>/dev/null` in
++	  sw)   UNAME_MACHINE=sw_64 ;;
++	esac
++	objdump --private-headers /bin/sh | grep -q ld.so.1
++	if test "$?" = 0 ; then LIBC=gnulibc1 ; fi
++	GUESS=$UNAME_MACHINE-sunway-linux-$LIBC
++	;;
+     alpha:Linux:*:*)
+ 	case `sed -n '/^cpu model/s/^.*: \(.*\)/\1/p' /proc/cpuinfo 2>/dev/null` in
+ 	  EV5)   UNAME_MACHINE=alphaev5 ;;
+diff -Nuar strace-5.14.org/build-aux/config.sub strace-5.14.sw/build-aux/config.sub
+--- strace-5.14.org/build-aux/config.sub	2022-06-10 08:46:52.490000000 +0000
++++ strace-5.14.sw/build-aux/config.sub	2022-06-10 16:05:37.750000000 +0000
+@@ -1160,6 +1160,7 @@
+ 			| a29k \
+ 			| aarch64 | aarch64_be \
+ 			| abacus \
++			| sw_64 \
+ 			| alpha | alphaev[4-8] | alphaev56 | alphaev6[78] \
+ 			| alpha64 | alpha64ev[4-8] | alpha64ev56 | alpha64ev6[78] \
+ 			| alphapca5[67] | alpha64pca5[67] \
+diff -Nuar strace-5.14.org/bundled/Makefile.am strace-5.14.sw/bundled/Makefile.am
+--- strace-5.14.org/bundled/Makefile.am	2022-06-10 08:46:52.150000000 +0000
++++ strace-5.14.sw/bundled/Makefile.am	2022-06-10 16:07:04.620000000 +0000
+@@ -10,6 +10,7 @@
+ 	linux/GPL-2.0 \
+ 	linux/Linux-syscall-note \
+ 	linux/arch/alpha/include/uapi/asm/fcntl.h \
++	linux/arch/sw_64/include/uapi/asm/fcntl.h \
+ 	linux/arch/arm/include/uapi/asm/fcntl.h \
+ 	linux/arch/arm64/include/uapi/asm/fcntl.h \
+ 	linux/arch/ia64/include/uapi/asm/fcntl.h \
+diff -Nuar strace-5.14.org/bundled/Makefile.in strace-5.14.sw/bundled/Makefile.in
+--- strace-5.14.org/bundled/Makefile.in	2022-06-10 08:46:52.150000000 +0000
++++ strace-5.14.sw/bundled/Makefile.in	2022-06-10 16:15:04.390000000 +0000
+@@ -331,6 +331,7 @@
+ 	linux/GPL-2.0 \
+ 	linux/Linux-syscall-note \
+ 	linux/arch/alpha/include/uapi/asm/fcntl.h \
++	linux/arch/sw_64/include/uapi/asm/fcntl.h \
+ 	linux/arch/arm/include/uapi/asm/fcntl.h \
+ 	linux/arch/arm64/include/uapi/asm/fcntl.h \
+ 	linux/arch/ia64/include/uapi/asm/fcntl.h \
+diff -Nuar strace-5.14.org/bundled/linux/arch/sw_64/include/uapi/asm/fcntl.h strace-5.14.sw/bundled/linux/arch/sw_64/include/uapi/asm/fcntl.h
+--- strace-5.14.org/bundled/linux/arch/sw_64/include/uapi/asm/fcntl.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/bundled/linux/arch/sw_64/include/uapi/asm/fcntl.h	2022-06-10 16:13:17.410000000 +0000
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _SW_64_FCNTL_H
++#define _SW_64_FCNTL_H
++
++#define O_CREAT		 01000	/* not fcntl */
++#define O_TRUNC		 02000	/* not fcntl */
++#define O_EXCL		 04000	/* not fcntl */
++#define O_NOCTTY	010000	/* not fcntl */
++
++#define O_NONBLOCK	 00004
++#define O_APPEND	 00010
++#define O_DSYNC		040000	/* used to be O_SYNC, see below */
++#define O_DIRECTORY	0100000	/* must be a directory */
++#define O_NOFOLLOW	0200000 /* don't follow links */
++#define O_LARGEFILE	0400000 /* will be set by the kernel on every open */
++#define O_DIRECT	02000000 /* direct disk access - should check with OSF/1 */
++#define O_NOATIME	04000000
++#define O_CLOEXEC	010000000 /* set close_on_exec */
++/*
++ * Before Linux 2.6.33 only O_DSYNC semantics were implemented, but using
++ * the O_SYNC flag.  We continue to use the existing numerical value
++ * for O_DSYNC semantics now, but using the correct symbolic name for it.
++ * This new value is used to request true Posix O_SYNC semantics.  It is
++ * defined in this strange way to make sure applications compiled against
++ * new headers get at least O_DSYNC semantics on older kernels.
++ *
++ * This has the nice side-effect that we can simply test for O_DSYNC
++ * wherever we do not care if O_DSYNC or O_SYNC is used.
++ *
++ * Note: __O_SYNC must never be used directly.
++ */
++#define __O_SYNC	020000000
++#define O_SYNC		(__O_SYNC|O_DSYNC)
++
++#define O_PATH		040000000
++#define __O_TMPFILE	0100000000
++
++#define F_GETLK		7
++#define F_SETLK		8
++#define F_SETLKW	9
++
++#define F_SETOWN	5	/*  for sockets. */
++#define F_GETOWN	6	/*  for sockets. */
++#define F_SETSIG	10	/*  for sockets. */
++#define F_GETSIG	11	/*  for sockets. */
++
++/* for posix fcntl() and lockf() */
++#define F_RDLCK		1
++#define F_WRLCK		2
++#define F_UNLCK		8
++
++/* for old implementation of bsd flock () */
++#define F_EXLCK		16	/* or 3 */
++#define F_SHLCK		32	/* or 4 */
++
++#include <asm-generic/fcntl.h>
++
++#endif
+diff -Nuar strace-5.14.org/configure strace-5.14.sw/configure
+--- strace-5.14.org/configure	2022-06-10 08:46:51.220000000 +0000
++++ strace-5.14.sw/configure	2022-06-10 16:15:47.320000000 +0000
+@@ -5992,6 +5992,13 @@
+ $as_echo "#define AARCH64 1" >>confdefs.h
+ 
+ 	;;
++sw_64*)
++	arch=sw_64
++	arch_enable_Werror=no
++
++$as_echo "#define SW_64 1" >>confdefs.h
++
++	;;
+ alpha*)
+ 	arch=alpha
+ 	arch_enable_Werror=no
+diff -Nuar strace-5.14.org/configure.ac strace-5.14.sw/configure.ac
+--- strace-5.14.org/configure.ac	2022-06-10 08:46:51.220000000 +0000
++++ strace-5.14.sw/configure.ac	2022-06-10 16:16:41.730000000 +0000
+@@ -70,6 +70,11 @@
+ 	cc_flags_m32=
+ 	AC_DEFINE([AARCH64], 1, [Define for the AArch64 architecture.])
+ 	;;
++sw_64*)
++	arch=sw_64
++	arch_enable_Werror=no
++	AC_DEFINE([SW_64], 1, [Define for the Sw_64 architecture.])
++	;;
+ alpha*)
+ 	arch=alpha
+ 	arch_enable_Werror=no
+diff -Nuar strace-5.14.org/src/Makefile.am strace-5.14.sw/src/Makefile.am
+--- strace-5.14.org/src/Makefile.am	2022-06-10 08:46:52.220000000 +0000
++++ strace-5.14.sw/src/Makefile.am	2022-06-10 09:04:31.850000000 +0000
+@@ -58,6 +58,7 @@
+ 	affinity.c	\
+ 	aio.c		\
+ 	alpha.c		\
++	sw_64.c		\
+ 	arch_defs.h	\
+ 	basic_filters.c	\
+ 	bind.c		\
+@@ -488,6 +489,23 @@
+ 	linux/alpha/signalent.h		\
+ 	linux/alpha/syscallent.h	\
+ 	linux/alpha/userent.h		\
++	linux/sw_64/arch_defs_.h	\
++	linux/sw_64/arch_getrval2.c	\
++	linux/sw_64/arch_regs.c		\
++	linux/sw_64/arch_sigreturn.c	\
++	linux/sw_64/errnoent.h		\
++	linux/sw_64/get_error.c		\
++	linux/sw_64/get_scno.c		\
++	linux/sw_64/get_syscall_args.c	\
++	linux/sw_64/get_syscall_result.c	\
++	linux/sw_64/ioctls_arch0.h	\
++	linux/sw_64/ioctls_inc0.h	\
++	linux/sw_64/raw_syscall.h	\
++	linux/sw_64/set_error.c		\
++	linux/sw_64/set_scno.c		\
++	linux/sw_64/signalent.h		\
++	linux/sw_64/syscallent.h	\
++	linux/sw_64/userent.h		\
+ 	linux/arc/arch_regs.c		\
+ 	linux/arc/get_error.c		\
+ 	linux/arc/get_scno.c		\
+diff -Nuar strace-5.14.org/src/Makefile.in strace-5.14.sw/src/Makefile.in
+--- strace-5.14.org/src/Makefile.in	2022-06-10 08:46:52.220000000 +0000
++++ strace-5.14.sw/src/Makefile.in	2022-06-10 15:35:58.980000000 +0000
+@@ -296,7 +296,7 @@
+ libmpers_mx32_a_OBJECTS = $(am_libmpers_mx32_a_OBJECTS)
+ libstrace_a_AR = $(AR) $(ARFLAGS)
+ libstrace_a_LIBADD =
+-am__libstrace_a_SOURCES_DIST = access.c affinity.c aio.c alpha.c \
++am__libstrace_a_SOURCES_DIST = access.c affinity.c aio.c alpha.c sw_64.c \
+ 	arch_defs.h basic_filters.c bind.c bjm.c block.c bpf.c \
+ 	bpf_attr.h bpf_filter.c bpf_filter.h bpf_fprog.h \
+ 	bpf_seccomp_filter.c bpf_sock_filter.c btrfs.c cacheflush.c \
+@@ -381,6 +381,7 @@
+ am_libstrace_a_OBJECTS = libstrace_a-access.$(OBJEXT) \
+ 	libstrace_a-affinity.$(OBJEXT) libstrace_a-aio.$(OBJEXT) \
+ 	libstrace_a-alpha.$(OBJEXT) \
++	libstrace_a-sw_64.$(OBJEXT) \
+ 	libstrace_a-basic_filters.$(OBJEXT) libstrace_a-bind.$(OBJEXT) \
+ 	libstrace_a-bjm.$(OBJEXT) libstrace_a-block.$(OBJEXT) \
+ 	libstrace_a-bpf.$(OBJEXT) libstrace_a-bpf_filter.$(OBJEXT) \
+@@ -721,6 +722,7 @@
+ 	./$(DEPDIR)/libstrace_a-affinity.Po \
+ 	./$(DEPDIR)/libstrace_a-aio.Po \
+ 	./$(DEPDIR)/libstrace_a-alpha.Po \
++	./$(DEPDIR)/libstrace_a-sw_64.Po \
+ 	./$(DEPDIR)/libstrace_a-basic_filters.Po \
+ 	./$(DEPDIR)/libstrace_a-bind.Po ./$(DEPDIR)/libstrace_a-bjm.Po \
+ 	./$(DEPDIR)/libstrace_a-block.Po \
+@@ -1791,7 +1793,7 @@
+ noinst_LIBRARIES = libstrace.a $(am__append_20) $(am__append_24)
+ libstrace_a_CPPFLAGS = $(strace_CPPFLAGS)
+ libstrace_a_CFLAGS = $(strace_CFLAGS)
+-libstrace_a_SOURCES = access.c affinity.c aio.c alpha.c arch_defs.h \
++libstrace_a_SOURCES = access.c affinity.c aio.c alpha.c sw_64.c arch_defs.h \
+ 	basic_filters.c bind.c bjm.c block.c bpf.c bpf_attr.h \
+ 	bpf_filter.c bpf_filter.h bpf_fprog.h bpf_seccomp_filter.c \
+ 	bpf_sock_filter.c btrfs.c cacheflush.c capability.c caps0.h \
+@@ -1909,6 +1911,23 @@
+ 	linux/aarch64/shuffle_scno.c	\
+ 	linux/aarch64/syscallent.h	\
+ 	linux/aarch64/syscallent1.h	\
++	linux/sw_64/arch_defs_.h	\
++	linux/sw_64/arch_getrval2.c	\
++	linux/sw_64/arch_regs.c		\
++	linux/sw_64/arch_sigreturn.c	\
++	linux/sw_64/errnoent.h		\
++	linux/sw_64/get_error.c		\
++	linux/sw_64/get_scno.c		\
++	linux/sw_64/get_syscall_args.c	\
++	linux/sw_64/get_syscall_result.c	\
++	linux/sw_64/ioctls_arch0.h	\
++	linux/sw_64/ioctls_inc0.h	\
++	linux/sw_64/raw_syscall.h	\
++	linux/sw_64/set_error.c		\
++	linux/sw_64/set_scno.c		\
++	linux/sw_64/signalent.h		\
++	linux/sw_64/syscallent.h	\
++	linux/sw_64/userent.h		\
+ 	linux/alpha/arch_defs_.h	\
+ 	linux/alpha/arch_getrval2.c	\
+ 	linux/alpha/arch_regs.c		\
+@@ -2771,6 +2790,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-affinity.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-aio.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-alpha.Po@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-sw_64.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-basic_filters.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-bind.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libstrace_a-bjm.Po@am__quote@ # am--include-marker
+@@ -4274,6 +4294,20 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libstrace_a_CPPFLAGS) $(CPPFLAGS) $(libstrace_a_CFLAGS) $(CFLAGS) -c -o libstrace_a-aio.obj `if test -f 'aio.c'; then $(CYGPATH_W) 'aio.c'; else $(CYGPATH_W) '$(srcdir)/aio.c'; fi`
+ 
++libstrace_a-sw_64.o: sw_64.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libstrace_a_CPPFLAGS) $(CPPFLAGS) $(libstrace_a_CFLAGS) $(CFLAGS) -MT libstrace_a-sw_64.o -MD -MP -MF $(DEPDIR)/libstrace_a-sw_64.Tpo -c -o libstrace_a-sw_64.o `test -f 'sw_64.c' || echo '$(srcdir)/'`sw_64.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libstrace_a-sw_64.Tpo $(DEPDIR)/libstrace_a-sw_64.Po
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sw_64.c' object='libstrace_a-sw_64.o' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libstrace_a_CPPFLAGS) $(CPPFLAGS) $(libstrace_a_CFLAGS) $(CFLAGS) -c -o libstrace_a-sw_64.o `test -f 'sw_64.c' || echo '$(srcdir)/'`sw_64.c
++
++libstrace_a-sw_64.obj: sw_64.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libstrace_a_CPPFLAGS) $(CPPFLAGS) $(libstrace_a_CFLAGS) $(CFLAGS) -MT libstrace_a-sw_64.obj -MD -MP -MF $(DEPDIR)/libstrace_a-sw_64.Tpo -c -o libstrace_a-sw_64.obj `if test -f 'sw_64.c'; then $(CYGPATH_W) 'sw_64.c'; else $(CYGPATH_W) '$(srcdir)/sw_64.c'; fi`
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libstrace_a-sw_64.Tpo $(DEPDIR)/libstrace_a-sw_64.Po
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source=sw_64.c' object='libstrace_a-sw_64.obj' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libstrace_a_CPPFLAGS) $(CPPFLAGS) $(libstrace_a_CFLAGS) $(CFLAGS) -c -o libstrace_a-sw_64.obj `if test -f 'sw_64.c'; then $(CYGPATH_W) 'sw_64.c'; else $(CYGPATH_W) '$(srcdir)/sw_64.c'; fi`
++
+ libstrace_a-alpha.o: alpha.c
+ @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libstrace_a_CPPFLAGS) $(CPPFLAGS) $(libstrace_a_CFLAGS) $(CFLAGS) -MT libstrace_a-alpha.o -MD -MP -MF $(DEPDIR)/libstrace_a-alpha.Tpo -c -o libstrace_a-alpha.o `test -f 'alpha.c' || echo '$(srcdir)/'`alpha.c
+ @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libstrace_a-alpha.Tpo $(DEPDIR)/libstrace_a-alpha.Po
+@@ -8205,6 +8239,7 @@
+ 	-rm -f ./$(DEPDIR)/libstrace_a-affinity.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-aio.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-alpha.Po
++	-rm -f ./$(DEPDIR)/libstrace_a-sw_64.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-basic_filters.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-bind.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-bjm.Po
+@@ -8602,6 +8637,7 @@
+ 	-rm -f ./$(DEPDIR)/libstrace_a-affinity.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-aio.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-alpha.Po
++	-rm -f ./$(DEPDIR)/libstrace_a-sw_64.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-basic_filters.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-bind.Po
+ 	-rm -f ./$(DEPDIR)/libstrace_a-bjm.Po
+diff -Nuar strace-5.14.org/src/clone.c strace-5.14.sw/src/clone.c
+--- strace-5.14.org/src/clone.c	2022-06-10 08:46:52.210000000 +0000
++++ strace-5.14.sw/src/clone.c	2022-06-10 09:16:15.120000000 +0000
+@@ -39,7 +39,7 @@
+ # define ARG_PTID	2
+ # define ARG_CTID	((current_personality != 1) ? 3 : 4)
+ # define ARG_TLS	((current_personality != 1) ? 4 : 3)
+-#elif defined ALPHA || defined TILE || defined OR1K || defined CSKY
++#elif defined ALPHA || defined SW_64 || defined TILE || defined OR1K || defined CSKY
+ # define ARG_FLAGS	0
+ # define ARG_STACK	1
+ # define ARG_PTID	2
+diff -Nuar strace-5.14.org/src/config.h.in strace-5.14.sw/src/config.h.in
+--- strace-5.14.org/src/config.h.in	2022-06-10 08:46:52.220000000 +0000
++++ strace-5.14.sw/src/config.h.in	2022-06-10 15:39:26.600000000 +0000
+@@ -6,6 +6,9 @@
+ /* Define if building universal (internal helper macro) */
+ #undef AC_APPLE_UNIVERSAL_BUILD
+ 
++/* Define for the Sw_64 architecture. */
++#undef SW_64
++
+ /* Define for the Alpha architecture. */
+ #undef ALPHA
+ 
+diff -Nuar strace-5.14.org/src/defs.h strace-5.14.sw/src/defs.h
+--- strace-5.14.org/src/defs.h	2022-06-10 08:46:52.210000000 +0000
++++ strace-5.14.sw/src/defs.h	2022-06-10 08:53:48.630000000 +0000
+@@ -1534,7 +1534,7 @@
+ extern int print_sparc64_timex(struct tcb *, kernel_ulong_t);
+ # endif
+ 
+-# ifdef ALPHA
++# if defined ALPHA || defined SW_64
+ typedef struct {
+ 	int tv_sec, tv_usec;
+ } timeval32_t;
+diff -Nuar strace-5.14.org/src/desc.c strace-5.14.sw/src/desc.c
+--- strace-5.14.org/src/desc.c	2022-06-10 08:46:52.210000000 +0000
++++ strace-5.14.sw/src/desc.c	2022-06-10 09:17:24.180000000 +0000
+@@ -160,7 +160,7 @@
+ }
+ #endif /* HAVE_ARCH_OLD_SELECT */
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_select)
+ {
+ 	return decode_select(tcp, tcp->u_arg, print_timeval32, sprint_timeval32);
+diff -Nuar strace-5.14.org/src/hostname.c strace-5.14.sw/src/hostname.c
+--- strace-5.14.org/src/hostname.c	2022-06-10 08:46:52.200000000 +0000
++++ strace-5.14.sw/src/hostname.c	2022-06-10 09:09:44.180000000 +0000
+@@ -26,7 +26,7 @@
+ 	return RVAL_DECODED;
+ }
+ 
+-#if defined(ALPHA)
++#if defined(ALPHA) || defined(SW_64)
+ SYS_FUNC(gethostname)
+ {
+ 	if (exiting(tcp)) {
+diff -Nuar strace-5.14.org/src/ioctl.c strace-5.14.sw/src/ioctl.c
+--- strace-5.14.org/src/ioctl.c	2022-06-10 08:46:52.200000000 +0000
++++ strace-5.14.sw/src/ioctl.c	2022-06-10 09:21:00.300000000 +0000
+@@ -295,7 +295,7 @@
+ f_ioctl(struct tcb *tcp, const unsigned int code, const kernel_ulong_t arg)
+ {
+ 	int rc = fs_f_ioctl(tcp, code, arg);
+-#if defined ALPHA
++#if defined ALPHA || defined SW_64
+ 	if (rc == RVAL_DECODED)
+ 		rc = sock_ioctl(tcp, code, arg);
+ 	if (rc == RVAL_DECODED)
+@@ -380,11 +380,11 @@
+ 		return ubi_ioctl(tcp, code, arg);
+ 	case 'p':
+ 		return rtc_ioctl(tcp, code, arg);
+-#if defined ALPHA || defined MIPS || defined SH || defined XTENSA
++#if defined ALPHA || defined SW_64 || defined MIPS || defined SH || defined XTENSA
+ 	case 's':
+ 		return sock_ioctl(tcp, code, arg);
+ #endif
+-#if defined(ALPHA) || defined(POWERPC)
++#if defined(ALPHA) || defined(SW_64) || defined(POWERPC)
+ 	case 't':
+ 		return term_ioctl(tcp, code, arg);
+ #endif /* !ALPHA */
+diff -Nuar strace-5.14.org/src/kernel_types.h strace-5.14.sw/src/kernel_types.h
+--- strace-5.14.org/src/kernel_types.h	2022-06-10 08:46:52.200000000 +0000
++++ strace-5.14.sw/src/kernel_types.h	2022-06-10 09:11:51.760000000 +0000
+@@ -56,7 +56,7 @@
+  */
+ # if SIZEOF_LONG == 4
+ #  define PRI__64 "ll"
+-# elif defined ALPHA || defined IA64 || defined __powerpc64__ \
++# elif defined ALPHA || defined SW_64 || defined IA64 || defined __powerpc64__ \
+       || (defined MIPS && !defined __ANDROID__)
+ #  define PRI__64 "l"
+ # else
+diff -Nuar strace-5.14.org/src/linux/sw_64/arch_defs_.h strace-5.14.sw/src/linux/sw_64/arch_defs_.h
+--- strace-5.14.org/src/linux/sw_64/arch_defs_.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/arch_defs_.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,10 @@
++/*
++ * Copyright (c) 2018-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++#define HAVE_ARCH_GETRVAL2 1
++#define HAVE_ARCH_DEDICATED_ERR_REG 1
++#define HAVE_ARCH_TIME32_SYSCALLS 1
+diff -Nuar strace-5.14.org/src/linux/sw_64/arch_getrval2.c strace-5.14.sw/src/linux/sw_64/arch_getrval2.c
+--- strace-5.14.org/src/linux/sw_64/arch_getrval2.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/arch_getrval2.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,15 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++long
++getrval2(struct tcb *tcp)
++{
++	unsigned long r20;
++	if (upeek(tcp, 20, &r20) < 0)
++		return -1;
++	return r20;
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/arch_regs.c strace-5.14.sw/src/linux/sw_64/arch_regs.c
+--- strace-5.14.org/src/linux/sw_64/arch_regs.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/arch_regs.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,18 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++static unsigned long alpha_r0;
++static unsigned long alpha_a3;
++
++#define REG_R0 0
++#define REG_A0 16
++#define REG_A3 19
++#define REG_SP 30
++#define REG_PC 64
++
++#define ARCH_PC_PEEK_ADDR REG_PC
++#define ARCH_SP_PEEK_ADDR REG_SP
+diff -Nuar strace-5.14.org/src/linux/sw_64/arch_sigreturn.c strace-5.14.sw/src/linux/sw_64/arch_sigreturn.c
+--- strace-5.14.org/src/linux/sw_64/arch_sigreturn.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/arch_sigreturn.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,18 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++static void
++arch_sigreturn(struct tcb *tcp)
++{
++	unsigned long addr;
++
++	if (!get_stack_pointer(tcp, &addr))
++		return;
++	addr += offsetof(struct sigcontext, sc_mask);
++
++	print_sigset_addr(tcp, addr);
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/errnoent.h strace-5.14.sw/src/linux/sw_64/errnoent.h
+--- strace-5.14.org/src/linux/sw_64/errnoent.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/errnoent.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,156 @@
++/*
++ * Copyright (c) 1999-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++[  1] = "EPERM",
++[  2] = "ENOENT",
++[  3] = "ESRCH",
++[  4] = "EINTR",
++[  5] = "EIO",
++[  6] = "ENXIO",
++[  7] = "E2BIG",
++[  8] = "ENOEXEC",
++[  9] = "EBADF",
++[ 10] = "ECHILD",
++[ 11] = "EDEADLK",
++[ 12] = "ENOMEM",
++[ 13] = "EACCES",
++[ 14] = "EFAULT",
++[ 15] = "ENOTBLK",
++[ 16] = "EBUSY",
++[ 17] = "EEXIST",
++[ 18] = "EXDEV",
++[ 19] = "ENODEV",
++[ 20] = "ENOTDIR",
++[ 21] = "EISDIR",
++[ 22] = "EINVAL",
++[ 23] = "ENFILE",
++[ 24] = "EMFILE",
++[ 25] = "ENOTTY",
++[ 26] = "ETXTBSY",
++[ 27] = "EFBIG",
++[ 28] = "ENOSPC",
++[ 29] = "ESPIPE",
++[ 30] = "EROFS",
++[ 31] = "EMLINK",
++[ 32] = "EPIPE",
++[ 33] = "EDOM",
++[ 34] = "ERANGE",
++[ 35] = "EAGAIN",
++[ 36] = "EINPROGRESS",
++[ 37] = "EALREADY",
++[ 38] = "ENOTSOCK",
++[ 39] = "EDESTADDRREQ",
++[ 40] = "EMSGSIZE",
++[ 41] = "EPROTOTYPE",
++[ 42] = "ENOPROTOOPT",
++[ 43] = "EPROTONOSUPPORT",
++[ 44] = "ESOCKTNOSUPPORT",
++[ 45] = "EOPNOTSUPP",
++[ 46] = "EPFNOSUPPORT",
++[ 47] = "EAFNOSUPPORT",
++[ 48] = "EADDRINUSE",
++[ 49] = "EADDRNOTAVAIL",
++[ 50] = "ENETDOWN",
++[ 51] = "ENETUNREACH",
++[ 52] = "ENETRESET",
++[ 53] = "ECONNABORTED",
++[ 54] = "ECONNRESET",
++[ 55] = "ENOBUFS",
++[ 56] = "EISCONN",
++[ 57] = "ENOTCONN",
++[ 58] = "ESHUTDOWN",
++[ 59] = "ETOOMANYREFS",
++[ 60] = "ETIMEDOUT",
++[ 61] = "ECONNREFUSED",
++[ 62] = "ELOOP",
++[ 63] = "ENAMETOOLONG",
++[ 64] = "EHOSTDOWN",
++[ 65] = "EHOSTUNREACH",
++[ 66] = "ENOTEMPTY",
++[ 68] = "EUSERS",
++[ 69] = "EDQUOT",
++[ 70] = "ESTALE",
++[ 71] = "EREMOTE",
++[ 77] = "ENOLCK",
++[ 78] = "ENOSYS",
++[ 80] = "ENOMSG",
++[ 81] = "EIDRM",
++[ 82] = "ENOSR",
++[ 83] = "ETIME",
++[ 84] = "EBADMSG",
++[ 85] = "EPROTO",
++[ 86] = "ENODATA",
++[ 87] = "ENOSTR",
++[ 88] = "ECHRNG",
++[ 89] = "EL2NSYNC",
++[ 90] = "EL3HLT",
++[ 91] = "EL3RST",
++[ 92] = "ENOPKG",
++[ 93] = "ELNRNG",
++[ 94] = "EUNATCH",
++[ 95] = "ENOCSI",
++[ 96] = "EL2HLT",
++[ 97] = "EBADE",
++[ 98] = "EBADR",
++[ 99] = "EXFULL",
++[100] = "ENOANO",
++[101] = "EBADRQC",
++[102] = "EBADSLT",
++[103] = "EDEADLOCK",
++[104] = "EBFONT",
++[105] = "ENONET",
++[106] = "ENOLINK",
++[107] = "EADV",
++[108] = "ESRMNT",
++[109] = "ECOMM",
++[110] = "EMULTIHOP",
++[111] = "EDOTDOT",
++[112] = "EOVERFLOW",
++[113] = "ENOTUNIQ",
++[114] = "EBADFD",
++[115] = "EREMCHG",
++[116] = "EILSEQ",
++[117] = "EUCLEAN",
++[118] = "ENOTNAM",
++[119] = "ENAVAIL",
++[120] = "EISNAM",
++[121] = "EREMOTEIO",
++[122] = "ELIBACC",
++[123] = "ELIBBAD",
++[124] = "ELIBSCN",
++[125] = "ELIBMAX",
++[126] = "ELIBEXEC",
++[127] = "ERESTART",
++[128] = "ESTRPIPE",
++[129] = "ENOMEDIUM",
++[130] = "EMEDIUMTYPE",
++[131] = "ECANCELED",
++[132] = "ENOKEY",
++[133] = "EKEYEXPIRED",
++[134] = "EKEYREVOKED",
++[135] = "EKEYREJECTED",
++[136] = "EOWNERDEAD",
++[137] = "ENOTRECOVERABLE",
++[138] = "ERFKILL",
++[139] = "EHWPOISON",
++[512] = "ERESTARTSYS",
++[513] = "ERESTARTNOINTR",
++[514] = "ERESTARTNOHAND",
++[515] = "ENOIOCTLCMD",
++[516] = "ERESTART_RESTARTBLOCK",
++[517] = "EPROBE_DEFER",
++[518] = "EOPENSTALE",
++[521] = "EBADHANDLE",
++[522] = "ENOTSYNC",
++[523] = "EBADCOOKIE",
++[524] = "ENOTSUPP",
++[525] = "ETOOSMALL",
++[526] = "ESERVERFAULT",
++[527] = "EBADTYPE",
++[528] = "EJUKEBOX",
++[529] = "EIOCBQUEUED",
++[530] = "ERECALLCONFLICT",
+diff -Nuar strace-5.14.org/src/linux/sw_64/get_error.c strace-5.14.sw/src/linux/sw_64/get_error.c
+--- strace-5.14.org/src/linux/sw_64/get_error.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/get_error.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,17 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++static void
++arch_get_error(struct tcb *tcp, const bool check_errno)
++{
++	if (alpha_a3) {
++		tcp->u_rval = -1;
++		tcp->u_error = alpha_r0;
++	} else {
++		tcp->u_rval = alpha_r0;
++	}
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/get_scno.c strace-5.14.sw/src/linux/sw_64/get_scno.c
+--- strace-5.14.org/src/linux/sw_64/get_scno.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/get_scno.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,32 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++/* Return codes: 1 - ok, 0 - ignore, other - error. */
++static int
++arch_get_scno(struct tcb *tcp)
++{
++	kernel_ulong_t scno = 0;
++
++	if (upeek(tcp, REG_A3, &alpha_a3) < 0)
++		return -1;
++	if (upeek(tcp, REG_R0, &scno) < 0)
++		return -1;
++
++	/*
++	 * Do some sanity checks to figure out if it's
++	 * really a syscall entry
++	 */
++	if (!scno_in_range(scno)) {
++		if (alpha_a3 == 0 || alpha_a3 == -1UL) {
++			debug_msg("stray syscall exit: r0 = %lu", scno);
++			return 0;
++		}
++	}
++
++	tcp->scno = scno;
++	return 1;
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/get_syscall_args.c strace-5.14.sw/src/linux/sw_64/get_syscall_args.c
+--- strace-5.14.org/src/linux/sw_64/get_syscall_args.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/get_syscall_args.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,18 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++/* Return -1 on error or 1 on success (never 0!). */
++static int
++arch_get_syscall_args(struct tcb *tcp)
++{
++	unsigned int i;
++
++	for (i = 0; i < n_args(tcp); ++i)
++		if (upeek(tcp, REG_A0+i, &tcp->u_arg[i]) < 0)
++			return -1;
++	return 1;
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/get_syscall_result.c strace-5.14.sw/src/linux/sw_64/get_syscall_result.c
+--- strace-5.14.org/src/linux/sw_64/get_syscall_result.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/get_syscall_result.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,13 @@
++/*
++ * Copyright (c) 2015-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++static int
++get_syscall_result_regs(struct tcb *tcp)
++{
++	return (upeek(tcp, REG_A3, &alpha_a3) < 0 ||
++		upeek(tcp, REG_R0, &alpha_r0) < 0) ? -1 : 0;
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/ioctls_arch0.h strace-5.14.sw/src/linux/sw_64/ioctls_arch0.h
+--- strace-5.14.org/src/linux/sw_64/ioctls_arch0.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/ioctls_arch0.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,80 @@
++/* Generated by ioctls_gen.sh from definitions found in $linux/arch/alpha/include/ tree. */
++{ "asm/ioctls.h", "FIOASYNC", _IOC_WRITE, 0x667d, 0x04 },
++{ "asm/ioctls.h", "FIOCLEX", _IOC_NONE, 0x6601, 0x00 },
++{ "asm/ioctls.h", "FIONBIO", _IOC_WRITE, 0x667e, 0x04 },
++{ "asm/ioctls.h", "FIONCLEX", _IOC_NONE, 0x6602, 0x00 },
++{ "asm/ioctls.h", "FIONREAD", _IOC_READ, 0x667f, 0x04 },
++{ "asm/ioctls.h", "FIOQSIZE", _IOC_READ, 0x6680, 0x08 },
++{ "asm/ioctls.h", "TCFLSH", _IOC_NONE, 0x741f, 0x00 },
++{ "asm/ioctls.h", "TCGETA", _IOC_READ, 0x7417, 0x12 },
++{ "asm/ioctls.h", "TCGETS", _IOC_READ, 0x7413, 0x2c },
++{ "asm/ioctls.h", "TCSBRK", _IOC_NONE, 0x741d, 0x00 },
++{ "asm/ioctls.h", "TCSBRKP", 0, 0x5425, 0 },
++{ "asm/ioctls.h", "TCSETA", _IOC_WRITE, 0x7418, 0x12 },
++{ "asm/ioctls.h", "TCSETAF", _IOC_WRITE, 0x741c, 0x12 },
++{ "asm/ioctls.h", "TCSETAW", _IOC_WRITE, 0x7419, 0x12 },
++{ "asm/ioctls.h", "TCSETS", _IOC_WRITE, 0x7414, 0x2c },
++{ "asm/ioctls.h", "TCSETSF", _IOC_WRITE, 0x7416, 0x2c },
++{ "asm/ioctls.h", "TCSETSW", _IOC_WRITE, 0x7415, 0x2c },
++{ "asm/ioctls.h", "TCXONC", _IOC_NONE, 0x741e, 0x00 },
++{ "asm/ioctls.h", "TIOCCBRK", 0, 0x5428, 0 },
++{ "asm/ioctls.h", "TIOCCONS", 0, 0x541D, 0 },
++{ "asm/ioctls.h", "TIOCEXCL", 0, 0x540C, 0 },
++{ "asm/ioctls.h", "TIOCGDEV", _IOC_READ, 0x5432, 0x04 },
++{ "asm/ioctls.h", "TIOCGETC", _IOC_READ, 0x7412, 0x06 },
++{ "asm/ioctls.h", "TIOCGETD", 0, 0x5424, 0 },
++{ "asm/ioctls.h", "TIOCGETP", _IOC_READ, 0x7408, 0x06 },
++{ "asm/ioctls.h", "TIOCGEXCL", _IOC_READ, 0x5440, 0x04 },
++{ "asm/ioctls.h", "TIOCGICOUNT", 0, 0x545D, 0 },
++{ "asm/ioctls.h", "TIOCGLCKTRMIOS", 0, 0x5456, 0 },
++{ "asm/ioctls.h", "TIOCGLTC", _IOC_READ, 0x7474, 0x06 },
++{ "asm/ioctls.h", "TIOCGPGRP", _IOC_READ, 0x7477, 0x04 },
++{ "asm/ioctls.h", "TIOCGPKT", _IOC_READ, 0x5438, 0x04 },
++{ "asm/ioctls.h", "TIOCGPTLCK", _IOC_READ, 0x5439, 0x04 },
++{ "asm/ioctls.h", "TIOCGPTN", _IOC_READ, 0x5430, 0x04 },
++{ "asm/ioctls.h", "TIOCGRS485", _IOC_READ, 0x542e, 0x20 },
++{ "asm/ioctls.h", "TIOCGSERIAL", 0, 0x541E, 0 },
++{ "asm/ioctls.h", "TIOCGSID", 0, 0x5429, 0 },
++{ "asm/ioctls.h", "TIOCGSOFTCAR", 0, 0x5419, 0 },
++{ "asm/ioctls.h", "TIOCGWINSZ", _IOC_READ, 0x7468, 0x08 },
++{ "asm/ioctls.h", "TIOCLINUX", 0, 0x541C, 0 },
++{ "asm/ioctls.h", "TIOCMBIC", 0, 0x5417, 0 },
++{ "asm/ioctls.h", "TIOCMBIS", 0, 0x5416, 0 },
++{ "asm/ioctls.h", "TIOCMGET", 0, 0x5415, 0 },
++{ "asm/ioctls.h", "TIOCMIWAIT", 0, 0x545C, 0 },
++{ "asm/ioctls.h", "TIOCMSET", 0, 0x5418, 0 },
++{ "asm/ioctls.h", "TIOCNOTTY", 0, 0x5422, 0 },
++{ "asm/ioctls.h", "TIOCNXCL", 0, 0x540D, 0 },
++{ "asm/ioctls.h", "TIOCOUTQ", _IOC_READ, 0x7473, 0x04 },
++{ "asm/ioctls.h", "TIOCPKT", 0, 0x5420, 0 },
++{ "asm/ioctls.h", "TIOCSBRK", 0, 0x5427, 0 },
++{ "asm/ioctls.h", "TIOCSCTTY", 0, 0x540E, 0 },
++{ "asm/ioctls.h", "TIOCSERCONFIG", 0, 0x5453, 0 },
++{ "asm/ioctls.h", "TIOCSERGETLSR", 0, 0x5459, 0 },
++{ "asm/ioctls.h", "TIOCSERGETMULTI", 0, 0x545A, 0 },
++{ "asm/ioctls.h", "TIOCSERGSTRUCT", 0, 0x5458, 0 },
++{ "asm/ioctls.h", "TIOCSERGWILD", 0, 0x5454, 0 },
++{ "asm/ioctls.h", "TIOCSERSETMULTI", 0, 0x545B, 0 },
++{ "asm/ioctls.h", "TIOCSERSWILD", 0, 0x5455, 0 },
++{ "asm/ioctls.h", "TIOCSETC", _IOC_WRITE, 0x7411, 0x06 },
++{ "asm/ioctls.h", "TIOCSETD", 0, 0x5423, 0 },
++{ "asm/ioctls.h", "TIOCSETN", _IOC_WRITE, 0x740a, 0x06 },
++{ "asm/ioctls.h", "TIOCSETP", _IOC_WRITE, 0x7409, 0x06 },
++{ "asm/ioctls.h", "TIOCSIG", _IOC_WRITE, 0x5436, 0x04 },
++{ "asm/ioctls.h", "TIOCSLCKTRMIOS", 0, 0x5457, 0 },
++{ "asm/ioctls.h", "TIOCSLTC", _IOC_WRITE, 0x7475, 0x06 },
++{ "asm/ioctls.h", "TIOCSPGRP", _IOC_WRITE, 0x7476, 0x04 },
++{ "asm/ioctls.h", "TIOCSPTLCK", _IOC_WRITE, 0x5431, 0x04 },
++{ "asm/ioctls.h", "TIOCSRS485", _IOC_READ|_IOC_WRITE, 0x542f, 0x20 },
++{ "asm/ioctls.h", "TIOCSSERIAL", 0, 0x541F, 0 },
++{ "asm/ioctls.h", "TIOCSSOFTCAR", 0, 0x541A, 0 },
++{ "asm/ioctls.h", "TIOCSTART", _IOC_NONE, 0x746e, 0x00 },
++{ "asm/ioctls.h", "TIOCSTI", 0, 0x5412, 0 },
++{ "asm/ioctls.h", "TIOCSTOP", _IOC_NONE, 0x746f, 0x00 },
++{ "asm/ioctls.h", "TIOCSWINSZ", _IOC_WRITE, 0x7467, 0x08 },
++{ "asm/ioctls.h", "TIOCVHANGUP", 0, 0x5437, 0 },
++{ "asm/sockios.h", "FIOGETOWN", _IOC_READ, 0x667b, 0x04 },
++{ "asm/sockios.h", "FIOSETOWN", _IOC_WRITE, 0x667c, 0x04 },
++{ "asm/sockios.h", "SIOCATMARK", _IOC_READ, 0x7307, 0x04 },
++{ "asm/sockios.h", "SIOCGPGRP", _IOC_READ, 0x7309, 0x04 },
++{ "asm/sockios.h", "SIOCSPGRP", _IOC_WRITE, 0x7308, 0x04 },
+diff -Nuar strace-5.14.org/src/linux/sw_64/ioctls_inc0.h strace-5.14.sw/src/linux/sw_64/ioctls_inc0.h
+--- strace-5.14.org/src/linux/sw_64/ioctls_inc0.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/ioctls_inc0.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1 @@
++#include "../64/ioctls_inc.h"
+diff -Nuar strace-5.14.org/src/linux/sw_64/raw_syscall.h strace-5.14.sw/src/linux/sw_64/raw_syscall.h
+--- strace-5.14.org/src/linux/sw_64/raw_syscall.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/raw_syscall.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,31 @@
++/*
++ * Raw syscalls.
++ *
++ * Copyright (c) 2018-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++#ifndef STRACE_RAW_SYSCALL_H
++# define STRACE_RAW_SYSCALL_H
++
++# include "kernel_types.h"
++
++static inline kernel_ulong_t
++raw_syscall_0(const kernel_ulong_t nr, kernel_ulong_t *err)
++{
++	kernel_ulong_t sc_0 = nr;
++	register kernel_ulong_t sc_19 __asm__("$19");
++	__asm__ __volatile__("callsys"
++			     : "+v"(sc_0), "=r"(sc_19)
++			     :
++			     : "memory", "$1", "$2", "$3", "$4", "$5", "$6",
++			       "$7", "$8", "$16", "$17", "$18", "$20", "$21",
++			       "$22", "$23", "$24", "$25", "$27", "$28");
++	*err = sc_19;
++	return sc_0;
++}
++# define raw_syscall_0 raw_syscall_0
++
++#endif /* !STRACE_RAW_SYSCALL_H */
+diff -Nuar strace-5.14.org/src/linux/sw_64/set_error.c strace-5.14.sw/src/linux/sw_64/set_error.c
+--- strace-5.14.org/src/linux/sw_64/set_error.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/set_error.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,20 @@
++/*
++ * Copyright (c) 2016-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++static int
++arch_set_error(struct tcb *tcp)
++{
++	return upoke(tcp, REG_A3, (alpha_a3 = 1))
++	       || upoke(tcp, REG_R0, (alpha_r0 = tcp->u_error));
++}
++
++static int
++arch_set_success(struct tcb *tcp)
++{
++	return upoke(tcp, REG_A3, (alpha_a3 = 0))
++	       || upoke(tcp, REG_R0, (alpha_r0 = tcp->u_rval));
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/set_scno.c strace-5.14.sw/src/linux/sw_64/set_scno.c
+--- strace-5.14.org/src/linux/sw_64/set_scno.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/set_scno.c	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,12 @@
++/*
++ * Copyright (c) 2016-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++static int
++arch_set_scno(struct tcb *tcp, kernel_ulong_t scno)
++{
++	return upoke(tcp, REG_R0, scno);
++}
+diff -Nuar strace-5.14.org/src/linux/sw_64/signalent.h strace-5.14.sw/src/linux/sw_64/signalent.h
+--- strace-5.14.org/src/linux/sw_64/signalent.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/signalent.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,40 @@
++/*
++ * Copyright (c) 1999-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++	"0",		/* 0 */
++	"SIGHUP",	/* 1 */
++	"SIGINT",	/* 2 */
++	"SIGQUIT",	/* 3 */
++	"SIGILL",	/* 4 */
++	"SIGTRAP",	/* 5 */
++	"SIGABRT",	/* 6 */
++	"SIGEMT",	/* 7 */
++	"SIGFPE",	/* 8 */
++	"SIGKILL",	/* 9 */
++	"SIGBUS",	/* 10 */
++	"SIGSEGV",	/* 11 */
++	"SIGSYS",	/* 12 */
++	"SIGPIPE",	/* 13 */
++	"SIGALRM",	/* 14 */
++	"SIGTERM",	/* 15 */
++	"SIGURG",	/* 16 */
++	"SIGSTOP",	/* 17 */
++	"SIGTSTP",	/* 18 */
++	"SIGCONT",	/* 19 */
++	"SIGCHLD",	/* 20 */
++	"SIGTTIN",	/* 21 */
++	"SIGTTOU",	/* 22 */
++	"SIGIO",	/* 23 */
++	"SIGXCPU",	/* 24 */
++	"SIGXFSZ",	/* 25 */
++	"SIGVTALRM",	/* 26 */
++	"SIGPROF",	/* 27 */
++	"SIGWINCH",	/* 28 */
++	"SIGINFO",	/* 29 */
++	"SIGUSR1",	/* 30 */
++	"SIGUSR2",	/* 31 */
++	"SIGRTMIN",	/* 32 */
+diff -Nuar strace-5.14.org/src/linux/sw_64/syscallent.h strace-5.14.sw/src/linux/sw_64/syscallent.h
+--- strace-5.14.org/src/linux/sw_64/syscallent.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/syscallent.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,483 @@
++/*
++ * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
++ * Copyright (c) 1993, 1994, 1995 Rick Sladkey <jrs@world.std.com>
++ * Copyright (c) 1995-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++[  0] = { 6,	0,		SEN(printargs),			"osf_syscall"		}, /* not implemented */
++[  1] = { 1,	TP|SE,		SEN(exit),			"exit"			},
++[  2] = { 0,	TP,		SEN(fork),			"fork"			},
++[  3] = { 3,	TD,		SEN(read),			"read"			},
++[  4] = { 3,	TD,		SEN(write),			"write"			},
++[  5] = { 5,	0,		SEN(printargs),			"osf_old_open"		}, /* not implemented */
++[  6] = { 1,	TD,		SEN(close),			"close"			},
++[  7] = { 4,	TP,		SEN(osf_wait4),			"osf_wait4"		},
++[  8] = { 5,	0,		SEN(printargs),			"osf_old_creat"		}, /* not implemented */
++[  9] = { 2,	TF,		SEN(link),			"link"			},
++[ 10] = { 1,	TF,		SEN(unlink),			"unlink"		},
++[ 11] = { 5,	0,		SEN(printargs),			"osf_execve"		}, /* not implemented */
++[ 12] = { 1,	TF,		SEN(chdir),			"chdir"			},
++[ 13] = { 1,	TD,		SEN(fchdir),			"fchdir"		},
++[ 14] = { 3,	TF,		SEN(mknod),			"mknod"			},
++[ 15] = { 2,	TF,		SEN(chmod),			"chmod"			},
++[ 16] = { 3,	TF,		SEN(chown),			"chown"			},
++[ 17] = { 1,	TM|SI,		SEN(brk),			"brk"			},
++[ 18] = { 5,	TSFA,		SEN(printargs),			"osf_getfsstat"		}, /* not implemented */
++[ 19] = { 3,	TD,		SEN(lseek),			"lseek"			},
++[ 20] = { 0,	PU|NF,		SEN(getxpid),			"getxpid"		},
++[ 21] = { 4,	0,		SEN(printargs),			"osf_mount"		},
++[ 22] = { 2,	TF,		SEN(umount2),			"umount"		},
++[ 23] = { 1,	TC,		SEN(setuid),			"setuid"		},
++[ 24] = { 0,	TC|PU|NF,	SEN(getxuid),			"getxuid"		},
++[ 25] = { 5,	0,		SEN(printargs),			"exec_with_loader"	}, /* not implemented */
++[ 26] = { 4,	0,		SEN(ptrace),			"ptrace"		},
++[ 27] = { 5,	0,		SEN(printargs),			"osf_nrecvmsg"		}, /* not implemented */
++[ 28] = { 5,	0,		SEN(printargs),			"osf_nsendmsg"		}, /* not implemented */
++[ 29] = { 5,	0,		SEN(printargs),			"osf_nrecvfrom"		}, /* not implemented */
++[ 30] = { 5,	0,		SEN(printargs),			"osf_naccept"		}, /* not implemented */
++[ 31] = { 5,	0,		SEN(printargs),			"osf_ngetpeername"	}, /* not implemented */
++[ 32] = { 5,	0,		SEN(printargs),			"osf_ngetsockname"	}, /* not implemented */
++[ 33] = { 2,	TF,		SEN(access),			"access"		},
++[ 34] = { 5,	0,		SEN(printargs),			"osf_chflags"		}, /* not implemented */
++[ 35] = { 5,	0,		SEN(printargs),			"osf_fchflags"		}, /* not implemented */
++[ 36] = { 0,	0,		SEN(sync),			"sync"			},
++[ 37] = { 2,	TS|TP,		SEN(kill),			"kill"			},
++[ 38] = { 5,	TF|TST|TSTA,	SEN(printargs),			"osf_old_stat"		}, /* not implemented */
++[ 39] = { 2,	0,		SEN(setpgid),			"setpgid"		},
++[ 40] = { 5,	TF|TLST|TSTA,	SEN(printargs),			"osf_old_lstat"		}, /* not implemented */
++[ 41] = { 1,	TD,		SEN(dup),			"dup"			},
++[ 42] = { 0,	TD,		SEN(pipe),			"pipe"			},
++[ 43] = { 4,	0,		SEN(printargs),			"osf_set_program_attributes"	},
++[ 44] = { 5,	0,		SEN(printargs),			"osf_profil"		}, /* not implemented */
++[ 45] = { 3,	TD|TF,		SEN(open),			"open"			},
++[ 46] = { 5,	0,		SEN(printargs),			"osf_old_sigaction"	}, /* not implemented */
++[ 47] = { 0,	TC|PU|NF,	SEN(getxgid),			"getxgid"		},
++[ 48] = { 2,	TS,		SEN(osf_sigprocmask),		"osf_sigprocmask"	},
++[ 49] = { 5,	0,		SEN(printargs),			"osf_getlogin"		}, /* not implemented */
++[ 50] = { 5,	0,		SEN(printargs),			"osf_setlogin"		}, /* not implemented */
++[ 51] = { 1,	TF,		SEN(acct),			"acct"			},
++[ 52] = { 1,	TS,		SEN(sigpending),		"sigpending"		},
++[ 53] = { },
++[ 54] = { 3,	TD,		SEN(ioctl),			"ioctl"			},
++[ 55] = { 5,	0,		SEN(printargs),			"osf_reboot"		}, /* not implemented */
++[ 56] = { 5,	0,		SEN(printargs),			"osf_revoke"		}, /* not implemented */
++[ 57] = { 2,	TF,		SEN(symlink),			"symlink"		},
++[ 58] = { 3,	TF,		SEN(readlink),			"readlink"		},
++[ 59] = { 3,	TF|TP|TSD|SE|SI,	SEN(execve),			"execve"		},
++[ 60] = { 1,	NF,		SEN(umask),			"umask"			},
++[ 61] = { 1,	TF,		SEN(chroot),			"chroot"		},
++[ 62] = { 5,	TD|TFST|TSTA,	SEN(printargs),			"osf_old_fstat"		}, /* not implemented */
++[ 63] = { 0,	PU|NF,		SEN(getpgrp),			"getpgrp"		},
++[ 64] = { 0,	PU|NF,		SEN(getpagesize),		"getpagesize"		},
++[ 65] = { 5,	TM,		SEN(printargs),			"osf_mremap"		}, /* not implemented */
++[ 66] = { 0,	TP,		SEN(vfork),			"vfork"			},
++[ 67] = { 2,	TF|TST|TSTA,	SEN(stat),			"stat"			},
++[ 68] = { 2,	TF|TLST|TSTA,	SEN(lstat),			"lstat"			},
++[ 69] = { 5,	TM,		SEN(printargs),			"osf_sbrk"		}, /* not implemented */
++[ 70] = { 5,	0,		SEN(printargs),			"osf_sstk"		}, /* not implemented */
++[ 71] = { 6,	TD|TM|SI,	SEN(mmap),			"mmap"			},
++[ 72] = { 5,	0,		SEN(printargs),			"osf_old_vadvise"	}, /* not implemented */
++[ 73] = { 2,	TM|SI,		SEN(munmap),			"munmap"		},
++[ 74] = { 3,	TM|SI,		SEN(mprotect),			"mprotect"		},
++[ 75] = { 3,	TM,		SEN(madvise),			"madvise"		},
++[ 76] = { 0,	0,		SEN(vhangup),			"vhangup"		},
++[ 77] = { 5,	0,		SEN(printargs),			"osf_kmodcall"		}, /* not implemented */
++[ 78] = { 5,	TM,		SEN(printargs),			"osf_mincore"		}, /* not implemented */
++[ 79] = { 2,	TC,		SEN(getgroups),			"getgroups"		},
++[ 80] = { 2,	TC,		SEN(setgroups),			"setgroups"		},
++[ 81] = { 5,	0,		SEN(printargs),			"osf_old_getpgrp"	}, /* not implemented */
++[ 82] = { 2,	0,		SEN(setpgrp),			"setpgrp"		},
++[ 83] = { 3,	0,		SEN(osf_setitimer),		"osf_setitimer"		},
++[ 84] = { 5,	0,		SEN(printargs),			"osf_old_wait"		}, /* not implemented */
++[ 85] = { 5,	0,		SEN(printargs),			"osf_table"		}, /* not implemented */
++[ 86] = { 2,	0,		SEN(osf_getitimer),		"osf_getitimer"		},
++[ 87] = { 2,	0,		SEN(gethostname),		"gethostname"		},
++[ 88] = { 2,	0,		SEN(sethostname),		"sethostname"		},
++[ 89] = { 0,	PU|NF,		SEN(getdtablesize),		"getdtablesize"		},
++[ 90] = { 2,	TD,		SEN(dup2),			"dup2"			},
++[ 91] = { 2,	TD|TFST|TSTA,	SEN(fstat),			"fstat"			},
++[ 92] = { 3,	TD,		SEN(fcntl),			"fcntl"			},
++[ 93] = { 5,	TD,		SEN(osf_select),		"osf_select"		},
++[ 94] = { 3,	TD,		SEN(poll_time64),		"poll"			},
++[ 95] = { 1,	TD,		SEN(fsync),			"fsync"			},
++[ 96] = { 3,	0,		SEN(setpriority),		"setpriority"		},
++[ 97] = { 3,	TN,		SEN(socket),			"socket"		},
++[ 98] = { 3,	TN,		SEN(connect),			"connect"		},
++[ 99] = { 3,	TN,		SEN(accept),			"accept"		},
++[100] = { 2,	0,		SEN(getpriority),		"getpriority"		},
++[101] = { 4,	TN,		SEN(send),			"send"			},
++[102] = { 4,	TN,		SEN(recv),			"recv"			},
++[103] = { 0,	TS,		SEN(sigreturn),			"sigreturn"		},
++[104] = { 3,	TN,		SEN(bind),			"bind"			},
++[105] = { 5,	TN,		SEN(setsockopt),		"setsockopt"		},
++[106] = { 2,	TN,		SEN(listen),			"listen"		},
++[107] = { 5,	0,		SEN(printargs),			"osf_plock"		}, /* not implemented */
++[108] = { 5,	0,		SEN(printargs),			"osf_old_sigvec"	}, /* not implemented */
++[109] = { 5,	0,		SEN(printargs),			"osf_old_sigblock"	}, /* not implemented */
++[110] = { 5,	0,		SEN(printargs),			"osf_old_sigsetmask"	}, /* not implemented */
++[111] = { 1,	TS,		SEN(sigsuspend),		"sigsuspend"		},
++[112] = { 2,	0,		SEN(printargs),			"osf_sigstack"		},
++[113] = { 3,	TN,		SEN(recvmsg),			"recvmsg"		},
++[114] = { 3,	TN,		SEN(sendmsg),			"sendmsg"		},
++[115] = { 5,	0,		SEN(printargs),			"osf_old_vtrace"	}, /* not implemented */
++[116] = { 2,	TCL,		SEN(osf_gettimeofday),		"osf_gettimeofday"	},
++[117] = { 2,	0,		SEN(osf_getrusage),		"osf_getrusage"		},
++[118] = { 5,	TN,		SEN(getsockopt),		"getsockopt"		},
++[119] = { },
++[120] = { 3,	TD,		SEN(readv),			"readv"			},
++[121] = { 3,	TD,		SEN(writev),			"writev"		},
++[122] = { 2,	TCL,		SEN(osf_settimeofday),		"osf_settimeofday"	},
++[123] = { 3,	TD,		SEN(fchown),			"fchown"		},
++[124] = { 2,	TD,		SEN(fchmod),			"fchmod"		},
++[125] = { 6,	TN,		SEN(recvfrom),			"recvfrom"		},
++[126] = { 2,	TC,		SEN(setreuid),			"setreuid"		},
++[127] = { 2,	TC,		SEN(setregid),			"setregid"		},
++[128] = { 2,	TF,		SEN(rename),			"rename"		},
++[129] = { 2,	TF,		SEN(truncate),			"truncate"		},
++[130] = { 2,	TD,		SEN(ftruncate),			"ftruncate"		},
++[131] = { 2,	TD,		SEN(flock),			"flock"			},
++[132] = { 1,	TC,		SEN(setgid),			"setgid"		},
++[133] = { 6,	TN,		SEN(sendto),			"sendto"		},
++[134] = { 2,	TN,		SEN(shutdown),			"shutdown"		},
++[135] = { 4,	TN,		SEN(socketpair),		"socketpair"		},
++[136] = { 2,	TF,		SEN(mkdir),			"mkdir"			},
++[137] = { 1,	TF,		SEN(rmdir),			"rmdir"			},
++[138] = { 2,	TF,		SEN(osf_utimes),		"osf_utimes"		},
++[139] = { 5,	0,		SEN(printargs),			"osf_old_sigreturn"	}, /* not implemented */
++[140] = { 5,	TCL,		SEN(printargs),			"osf_adjtime"		}, /* not implemented */
++[141] = { 3,	TN,		SEN(getpeername),		"getpeername"		},
++[142] = { 5,	0,		SEN(printargs),			"osf_gethostid"		}, /* not implemented */
++[143] = { 5,	0,		SEN(printargs),			"osf_sethostid"		}, /* not implemented */
++[144] = { 2,	0,		SEN(getrlimit),			"getrlimit"		},
++[145] = { 2,	0,		SEN(setrlimit),			"setrlimit"		},
++[146] = { 5,	TP,		SEN(printargs),			"osf_old_killpg"	}, /* not implemented */
++[147] = { 0,	0,		SEN(setsid),			"setsid"		},
++[148] = { 4,	TF,		SEN(quotactl),			"quotactl"		},
++[149] = { 5,	0,		SEN(printargs),			"osf_oldquota"		}, /* not implemented */
++[150] = { 3,	TN,		SEN(getsockname),		"getsockname"		},
++[151 ... 152] = { },
++[153] = { 5,	0,		SEN(printargs),			"osf_pid_block"		}, /* not implemented */
++[154] = { 5,	0,		SEN(printargs),			"osf_pid_unblock"	}, /* not implemented */
++[155] = { },
++[156] = { 3,	TS,		SEN(sigaction),			"sigaction"		},
++[157] = { 5,	0,		SEN(printargs),			"osf_sigwaitprim"	}, /* not implemented */
++[158] = { 5,	0,		SEN(printargs),			"osf_nfssvc"		}, /* not implemented */
++[159] = { 4,	0,		SEN(printargs),			"osf_getdirentries"	},
++[160] = { 3,	TF|TSF|TSFA,	SEN(osf_statfs),		"osf_statfs"		},
++[161] = { 3,	TD|TFSF|TSFA,	SEN(osf_fstatfs),		"osf_fstatfs"		},
++[162] = { },
++[163] = { 5,	0,		SEN(printargs),			"osf_asynch_daemon"	}, /* not implemented */
++[164] = { 5,	0,		SEN(printargs),			"osf_getfh"		}, /* not implemented */
++[165] = { 2,	0,		SEN(printargs),			"osf_getdomainname"	},
++[166] = { 2,	0,		SEN(setdomainname),		"setdomainname"		},
++[167 ... 168] = { },
++[169] = { 5,	0,		SEN(printargs),			"osf_exportfs"		}, /* not implemented */
++[170 ... 180] = { },
++[181] = { 5,	0,		SEN(printargs),			"osf_alt_plock"		}, /* not implemented */
++[182 ... 183] = { },
++[184] = { 5,	0,		SEN(printargs),			"osf_getmnt"		}, /* not implemented */
++[185 ... 186] = { },
++[187] = { 5,	0,		SEN(printargs),			"osf_alt_sigpending"	}, /* not implemented */
++[188] = { 5,	0,		SEN(printargs),			"osf_alt_setsid"	}, /* not implemented */
++[189 ... 198] = { },
++[199] = { 4,	0,		SEN(printargs),			"osf_swapon"		},
++[200] = { 3,	TI,		SEN(msgctl),			"msgctl"		},
++[201] = { 2,	TI,		SEN(msgget),			"msgget"		},
++[202] = { 5,	TI,		SEN(msgrcv),			"msgrcv"		},
++[203] = { 4,	TI,		SEN(msgsnd),			"msgsnd"		},
++[204] = { 4,	TI,		SEN(semctl),			"semctl"		},
++[205] = { 3,	TI,		SEN(semget),			"semget"		},
++[206] = { 3,	TI,		SEN(semop),			"semop"			},
++[207] = { 1,	0,		SEN(printargs),			"osf_utsname"		},
++[208] = { 3,	TF,		SEN(chown),			"lchown"		},
++[209] = { 3,	TI|TM|SI,	SEN(shmat),			"osf_shmat"		},
++[210] = { 3,	TI,		SEN(shmctl),			"shmctl"		},
++[211] = { 1,	TI|TM|SI,	SEN(shmdt),			"shmdt"			},
++[212] = { 3,	TI,		SEN(shmget),			"shmget"		},
++[213] = { 5,	0,		SEN(printargs),			"osf_mvalid"		}, /* not implemented */
++[214] = { 5,	0,		SEN(printargs),			"osf_getaddressconf"	}, /* not implemented */
++[215] = { 5,	0,		SEN(printargs),			"osf_msleep"		}, /* not implemented */
++[216] = { 5,	0,		SEN(printargs),			"osf_mwakeup"		}, /* not implemented */
++[217] = { 3,	TM,		SEN(msync),			"msync"			},
++[218] = { 5,	0,		SEN(printargs),			"osf_signal"		}, /* not implemented */
++[219] = { 5,	0,		SEN(printargs),			"osf_utc_gettime"	}, /* not implemented */
++[220] = { 5,	TCL,		SEN(printargs),			"osf_utc_adjtime"	}, /* not implemented */
++[221] = { },
++[222] = { 5,	0,		SEN(printargs),			"osf_security"		}, /* not implemented */
++[223] = { 5,	0,		SEN(printargs),			"osf_kloadcall"		}, /* not implemented */
++[224] = { 2,	TF|TST|TSTA,	SEN(printargs),			"osf_stat"		},
++[225] = { 2,	TF|TLST|TSTA,	SEN(printargs),			"osf_lstat"		},
++[226] = { 2,	TD|TFST|TSTA,	SEN(printargs),			"osf_fstat"		},
++[227] = { 3,	TF|TSF|TSFA,	SEN(osf_statfs),		"osf_statfs64"		},
++[228] = { 3,	TD|TFSF|TSFA,	SEN(osf_fstatfs),		"osf_fstatfs64"		},
++[229 ... 232] = { },
++[233] = { 1,	0,		SEN(getpgid),			"getpgid"		},
++[234] = { 1,	0,		SEN(getsid),			"getsid"		},
++[235] = { 2,	TS,		SEN(sigaltstack),		"sigaltstack"		},
++[236] = { 5,	0,		SEN(printargs),			"osf_waitid"		}, /* not implemented */
++[237] = { 5,	0,		SEN(printargs),			"osf_priocntlset"	}, /* not implemented */
++[238] = { 5,	0,		SEN(printargs),			"osf_sigsendset"	}, /* not implemented */
++[239] = { 5,	0,		SEN(printargs),			"osf_set_speculative"	}, /* not implemented */
++[240] = { 5,	0,		SEN(printargs),			"osf_msfs_syscall"	}, /* not implemented */
++[241] = { 3,	0,		SEN(printargs),			"osf_sysinfo"		},
++[242] = { 5,	0,		SEN(printargs),			"osf_uadmin"		}, /* not implemented */
++[243] = { 5,	0,		SEN(printargs),			"osf_fuser"		}, /* not implemented */
++[244] = { 2,	0,		SEN(printargs),			"osf_proplist_syscall"	},
++[245] = { 5,	TCL,		SEN(printargs),			"osf_ntp_adjtime"	}, /* not implemented */
++[246] = { 5,	0,		SEN(printargs),			"osf_ntp_gettime"	}, /* not implemented */
++[247] = { 5,	0,		SEN(printargs),			"osf_pathconf"		}, /* not implemented */
++[248] = { 5,	0,		SEN(printargs),			"osf_fpathconf"		}, /* not implemented */
++[249] = { },
++[250] = { 5,	0,		SEN(printargs),			"osf_uswitch"		}, /* not implemented */
++[251] = { 2,	0,		SEN(printargs),			"osf_usleep_thread"	},
++[252] = { 5,	0,		SEN(printargs),			"osf_audcntl"		}, /* not implemented */
++[253] = { 5,	0,		SEN(printargs),			"osf_audgen"		}, /* not implemented */
++[254] = { 3,	0,		SEN(sysfs),			"sysfs"			},
++[255] = { 5,	0,		SEN(printargs),			"osf_subsys_info"	}, /* not implemented */
++[256] = { 5,	0,		SEN(printargs),			"osf_getsysinfo"	},
++[257] = { 5,	0,		SEN(printargs),			"osf_setsysinfo"	},
++[258] = { 5,	0,		SEN(printargs),			"osf_afs_syscall"	}, /* not implemented */
++[259] = { 5,	0,		SEN(printargs),			"osf_swapctl"		}, /* not implemented */
++[260] = { 5,	0,		SEN(printargs),			"osf_memcntl"		}, /* not implemented */
++[261] = { 5,	0,		SEN(printargs),			"osf_fdatasync"		}, /* not implemented */
++[262 ... 299] = { },
++[300] = { 2,	0,		SEN(bdflush),			"bdflush"		},
++[301] = { 1,	0,		SEN(printargs),			"sethae"		},
++[302] = { 5,	TF,		SEN(mount),			"mount"			},
++[303] = { 1,	TCL,		SEN(adjtimex32),		"old_adjtimex"		},
++[304] = { 1,	TF,		SEN(swapoff),			"swapoff"		},
++[305] = { 3,	TD,		SEN(getdents),			"getdents"		},
++[306] = { 2,	0,		SEN(create_module),		"create_module"		}, /* not implemented */
++[307] = { 3,	0,		SEN(init_module),		"init_module"		},
++[308] = { 2,	0,		SEN(delete_module),		"delete_module"		},
++[309] = { 1,	0,		SEN(get_kernel_syms),		"get_kernel_syms"	}, /* not implemented */
++[310] = { 3,	0,		SEN(syslog),			"syslog"		},
++[311] = { 4,	0,		SEN(reboot),			"reboot"		},
++[312] = { 5,	TP,		SEN(clone),			"clone"			},
++[313] = { 1,	TF,		SEN(uselib),			"uselib"		},
++[314] = { 2,	TM,		SEN(mlock),			"mlock"			},
++[315] = { 2,	TM,		SEN(munlock),			"munlock"		},
++[316] = { 1,	TM,		SEN(mlockall),			"mlockall"		},
++[317] = { 0,	TM,		SEN(munlockall),		"munlockall"		},
++[318] = { 1,	0,		SEN(sysinfo),			"sysinfo"		},
++[319] = { 1,	0,		SEN(sysctl),			"_sysctl"		},
++[320] = { },
++[321] = { 1,	TF,		SEN(umount),			"oldumount"		},
++[322] = { 2,	TF,		SEN(swapon),			"swapon"		},
++[323] = { 1,	0,		SEN(times),			"times"			},
++[324] = { 1,	NF,		SEN(personality),		"personality"		},
++[325] = { 1,	TC|NF,		SEN(setfsuid),			"setfsuid"		},
++[326] = { 1,	TC|NF,		SEN(setfsgid),			"setfsgid"		},
++[327] = { 2,	TSFA,		SEN(ustat),			"ustat"			},
++[328] = { 2,	TF|TSF|TSFA,	SEN(statfs),			"statfs"		},
++[329] = { 2,	TD|TFSF|TSFA,	SEN(fstatfs),			"fstatfs"		},
++[330] = { 2,	0,		SEN(sched_setparam),		"sched_setparam"	},
++[331] = { 2,	0,		SEN(sched_getparam),		"sched_getparam"	},
++[332] = { 3,	0,		SEN(sched_setscheduler),	"sched_setscheduler"	},
++[333] = { 1,	0,		SEN(sched_getscheduler),	"sched_getscheduler"	},
++[334] = { 0,	0,		SEN(sched_yield),		"sched_yield"		},
++[335] = { 1,	0,		SEN(sched_get_priority_max),	"sched_get_priority_max"},
++[336] = { 1,	0,		SEN(sched_get_priority_min),	"sched_get_priority_min"},
++[337] = { 2,	0,		SEN(sched_rr_get_interval_time64),"sched_rr_get_interval"},
++[338] = { 5,	0,		SEN(afs_syscall),		"afs_syscall"		}, /* not implemented */
++[339] = { 1,	0,		SEN(uname),			"uname"			},
++[340] = { 2,	0,		SEN(nanosleep_time64),		"nanosleep"		},
++[341] = { 5,	TM|SI,		SEN(mremap),			"mremap"		},
++[342] = { 3,	0,		SEN(nfsservctl),		"nfsservctl"		}, /* not implemented */
++[343] = { 3,	TC,		SEN(setresuid),			"setresuid"		},
++[344] = { 3,	TC,		SEN(getresuid),			"getresuid"		},
++[345] = { 5,	0,		SEN(printargs),			"pciconfig_read"	},
++[346] = { 5,	0,		SEN(printargs),			"pciconfig_write"	},
++[347] = { 5,	0,		SEN(query_module),		"query_module"		}, /* not implemented */
++[348] = { 5,	TC,		SEN(prctl),			"prctl"			},
++[349] = { 4,	TD,		SEN(pread),			"pread64"		},
++[350] = { 4,	TD,		SEN(pwrite),			"pwrite64"		},
++[351] = { 0,	TS,		SEN(rt_sigreturn),		"rt_sigreturn"		},
++[352] = { 5,	TS,		SEN(rt_sigaction),		"rt_sigaction"		},
++[353] = { 4,	TS,		SEN(rt_sigprocmask),		"rt_sigprocmask"	},
++[354] = { 2,	TS,		SEN(rt_sigpending),		"rt_sigpending"		},
++[355] = { 4,	TS,		SEN(rt_sigtimedwait_time64),	"rt_sigtimedwait"	},
++[356] = { 3,	TS|TP,		SEN(rt_sigqueueinfo),		"rt_sigqueueinfo"	},
++[357] = { 2,	TS,		SEN(rt_sigsuspend),		"rt_sigsuspend"		},
++[358] = { 5,	TD,		SEN(select),			"select"		},
++[359] = { 2,	TCL,		SEN(gettimeofday),		"gettimeofday"		},
++[360] = { 2,	TCL,		SEN(settimeofday),		"settimeofday"		},
++[361] = { 2,	0,		SEN(getitimer),			"getitimer"		},
++[362] = { 3,	0,		SEN(setitimer),			"setitimer"		},
++[363] = { 2,	TF,		SEN(utimes),			"utimes"		},
++[364] = { 2,	0,		SEN(getrusage),			"getrusage"		},
++[365] = { 4,	TP,		SEN(wait4),			"wait4"			},
++[366] = { 1,	TCL,		SEN(adjtimex64),		"adjtimex"		},
++[367] = { 2,	TF,		SEN(getcwd),			"getcwd"		},
++[368] = { 2,	TC,		SEN(capget),			"capget"		},
++[369] = { 2,	TC,		SEN(capset),			"capset"		},
++[370] = { 4,	TD|TN,		SEN(sendfile),			"sendfile"		},
++[371] = { 3,	TC,		SEN(setresgid),			"setresgid"		},
++[372] = { 3,	TC,		SEN(getresgid),			"getresgid"		},
++[373] = { 4,	0,		SEN(printargs),			"dipc"			}, /* not implemented */
++[374] = { 2,	TF,		SEN(pivotroot),			"pivot_root"		},
++[375] = { 3,	TM,		SEN(mincore),			"mincore"		},
++[376] = { 3,	0,		SEN(printargs),			"pciconfig_iobase"	},
++[377] = { 3,	TD,		SEN(getdents64),		"getdents64"		},
++[378] = { 0,	PU|NF,		SEN(gettid),			"gettid"		},
++[379] = { 3,	TD,		SEN(readahead),			"readahead"		},
++[380] = { },
++[381] = { 2,	TS|TP,		SEN(tkill),			"tkill"			},
++[382] = { 5,	TF,		SEN(setxattr),			"setxattr"		},
++[383] = { 5,	TF,		SEN(setxattr),			"lsetxattr"		},
++[384] = { 5,	TD,		SEN(fsetxattr),			"fsetxattr"		},
++[385] = { 4,	TF,		SEN(getxattr),			"getxattr"		},
++[386] = { 4,	TF,		SEN(getxattr),			"lgetxattr"		},
++[387] = { 4,	TD,		SEN(fgetxattr),			"fgetxattr"		},
++[388] = { 3,	TF,		SEN(listxattr),			"listxattr"		},
++[389] = { 3,	TF,		SEN(listxattr),			"llistxattr"		},
++[390] = { 3,	TD,		SEN(flistxattr),		"flistxattr"		},
++[391] = { 2,	TF,		SEN(removexattr),		"removexattr"		},
++[392] = { 2,	TF,		SEN(removexattr),		"lremovexattr"		},
++[393] = { 2,	TD,		SEN(fremovexattr),		"fremovexattr"		},
++[394] = { 6,	0,		SEN(futex_time64),		"futex"			},
++[395] = { 3,	0,		SEN(sched_setaffinity),		"sched_setaffinity"	},
++[396] = { 3,	0,		SEN(sched_getaffinity),		"sched_getaffinity"	},
++[397] = { 5,	0,		SEN(tuxcall),			"tuxcall"		}, /* not implemented */
++[398] = { 2,	TM,		SEN(io_setup),			"io_setup"		},
++[399] = { 1,	TM,		SEN(io_destroy),		"io_destroy"		},
++[400] = { 5,	0,		SEN(io_getevents_time64),	"io_getevents"		},
++[401] = { 3,	0,		SEN(io_submit),			"io_submit"		},
++[402] = { 3,	0,		SEN(io_cancel),			"io_cancel"		},
++[403 ... 404] = { },
++[405] = { 1,	TP|SE,		SEN(exit),			"exit_group"		},
++[406] = { 3,	0,		SEN(lookup_dcookie),		"lookup_dcookie"	},
++[407] = { 1,	TD,		SEN(epoll_create),		"epoll_create"		},
++[408] = { 4,	TD,		SEN(epoll_ctl),			"epoll_ctl"		},
++[409] = { 4,	TD,		SEN(epoll_wait),		"epoll_wait"		},
++[410] = { 5,	TM|SI,		SEN(remap_file_pages),		"remap_file_pages"	},
++[411] = { 1,	0,		SEN(set_tid_address),		"set_tid_address"	},
++[412] = { 0,	0,		SEN(restart_syscall),		"restart_syscall"	},
++[413] = { 4,	TD,		SEN(fadvise64),			"fadvise64"		},
++[414] = { 3,	0,		SEN(timer_create),		"timer_create"		},
++[415] = { 4,	0,		SEN(timer_settime64),		"timer_settime"		},
++[416] = { 2,	0,		SEN(timer_gettime64),		"timer_gettime"		},
++[417] = { 1,	0,		SEN(timer_getoverrun),		"timer_getoverrun"	},
++[418] = { 1,	0,		SEN(timer_delete),		"timer_delete"		},
++[419] = { 2,	TCL,		SEN(clock_settime64),		"clock_settime"		},
++[420] = { 2,	TCL,		SEN(clock_gettime64),		"clock_gettime"		},
++[421] = { 2,	TCL,		SEN(clock_getres_time64),	"clock_getres"		},
++[422] = { 4,	0,		SEN(clock_nanosleep_time64),	"clock_nanosleep"	},
++[423] = { 4,	TI,		SEN(semtimedop_time64),		"semtimedop"		},
++[424] = { 3,	TS|TP,		SEN(tgkill),			"tgkill"		},
++[425] = { 2,	TF|TST|TSTA,	SEN(stat64),			"stat64"		},
++[426] = { 2,	TF|TLST|TSTA,	SEN(lstat64),			"lstat64"		},
++[427] = { 2,	TD|TFST|TSTA,	SEN(fstat64),			"fstat64"		},
++[428] = { 5,	0,		SEN(vserver),			"vserver"		}, /* not implemented */
++[429] = { 6,	TM,		SEN(mbind),			"mbind"			}, /* not implemented */
++[430] = { 5,	TM,		SEN(get_mempolicy),		"get_mempolicy"		}, /* not implemented */
++[431] = { 3,	TM,		SEN(set_mempolicy),		"set_mempolicy"		}, /* not implemented */
++[432] = { 4,	TD,		SEN(mq_open),			"mq_open"		},
++[433] = { 1,	0,		SEN(mq_unlink),			"mq_unlink"		},
++[434] = { 5,	TD,		SEN(mq_timedsend_time64),	"mq_timedsend"		},
++[435] = { 5,	TD,		SEN(mq_timedreceive_time64),	"mq_timedreceive"	},
++[436] = { 2,	TD,		SEN(mq_notify),			"mq_notify"		},
++[437] = { 3,	TD,		SEN(mq_getsetattr),		"mq_getsetattr"		},
++[438] = { 5,	TP,		SEN(waitid),			"waitid"		},
++[439] = { 5,	0,		SEN(add_key),			"add_key"		},
++[440] = { 4,	0,		SEN(request_key),		"request_key"		},
++[441] = { 5,	0,		SEN(keyctl),			"keyctl"		},
++[442] = { 3,	0,		SEN(ioprio_set),		"ioprio_set"		},
++[443] = { 2,	0,		SEN(ioprio_get),		"ioprio_get"		},
++[444] = { 0,	TD,		SEN(inotify_init),		"inotify_init"		},
++[445] = { 3,	TD|TF,		SEN(inotify_add_watch),		"inotify_add_watch"	},
++[446] = { 2,	TD,		SEN(inotify_rm_watch),		"inotify_rm_watch"	},
++[447] = { 1,	TD,		SEN(fdatasync),			"fdatasync"		},
++[448] = { 4,	0,		SEN(kexec_load),		"kexec_load"		},
++[449] = { 4,	TM,		SEN(migrate_pages),		"migrate_pages"		},
++[450] = { 4,	TD|TF,		SEN(openat),			"openat"		},
++[451] = { 3,	TD|TF,		SEN(mkdirat),			"mkdirat"		},
++[452] = { 4,	TD|TF,		SEN(mknodat),			"mknodat"		},
++[453] = { 5,	TD|TF,		SEN(fchownat),			"fchownat"		},
++[454] = { 3,	TD|TF,		SEN(futimesat),			"futimesat"		},
++[455] = { 4,	TD|TF|TFST|TSTA,SEN(fstatat64),			"fstatat64"		},
++[456] = { 3,	TD|TF,		SEN(unlinkat),			"unlinkat"		},
++[457] = { 4,	TD|TF,		SEN(renameat),			"renameat"		},
++[458] = { 5,	TD|TF,		SEN(linkat),			"linkat"		},
++[459] = { 3,	TD|TF,		SEN(symlinkat),			"symlinkat"		},
++[460] = { 4,	TD|TF,		SEN(readlinkat),		"readlinkat"		},
++[461] = { 3,	TD|TF,		SEN(fchmodat),			"fchmodat"		},
++[462] = { 3,	TD|TF,		SEN(faccessat),			"faccessat"		},
++[463] = { 6,	TD,		SEN(pselect6_time64),		"pselect6"		},
++[464] = { 5,	TD,		SEN(ppoll_time64),		"ppoll"			},
++[465] = { 1,	0,		SEN(unshare),			"unshare"		},
++[466] = { 2,	0,		SEN(set_robust_list),		"set_robust_list"	},
++[467] = { 3,	0,		SEN(get_robust_list),		"get_robust_list"	},
++[468] = { 6,	TD,		SEN(splice),			"splice"		},
++[469] = { 4,	TD,		SEN(sync_file_range),		"sync_file_range"	},
++[470] = { 4,	TD,		SEN(tee),			"tee"			},
++[471] = { 4,	TD,		SEN(vmsplice),			"vmsplice"		},
++[472] = { 6,	TM,		SEN(move_pages),		"move_pages"		},
++[473] = { 3,	0,		SEN(getcpu),			"getcpu"		},
++[474] = { 6,	TD,		SEN(epoll_pwait),		"epoll_pwait"		},
++[475] = { 4,	TD|TF,		SEN(utimensat_time64),		"utimensat"		},
++[476] = { 3,	TD|TS,		SEN(signalfd),			"signalfd"		},
++[477] = { 4,	TD,		SEN(timerfd),			"timerfd"		}, /* not implemented */
++[478] = { 1,	TD,		SEN(eventfd),			"eventfd"		},
++[479] = { 5,	TN,		SEN(recvmmsg_time64),		"recvmmsg"		},
++[480] = { 4,	TD,		SEN(fallocate),			"fallocate"		},
++[481] = { 2,	TD,		SEN(timerfd_create),		"timerfd_create"	},
++[482] = { 4,	TD,		SEN(timerfd_settime64),		"timerfd_settime"	},
++[483] = { 2,	TD,		SEN(timerfd_gettime64),		"timerfd_gettime"	},
++[484] = { 4,	TD|TS,		SEN(signalfd4),			"signalfd4"		},
++[485] = { 2,	TD,		SEN(eventfd2),			"eventfd2"		},
++[486] = { 1,	TD,		SEN(epoll_create1),		"epoll_create1"		},
++[487] = { 3,	TD,		SEN(dup3),			"dup3"			},
++[488] = { 2,	TD,		SEN(pipe2),			"pipe2"			},
++[489] = { 1,	TD,		SEN(inotify_init1),		"inotify_init1"		},
++[490] = { 4,	TD,		SEN(preadv),			"preadv"		},
++[491] = { 4,	TD,		SEN(pwritev),			"pwritev"		},
++[492] = { 4,	TP|TS,		SEN(rt_tgsigqueueinfo),		"rt_tgsigqueueinfo"	},
++[493] = { 5,	TD,		SEN(perf_event_open),		"perf_event_open"	},
++[494] = { 2,	TD,		SEN(fanotify_init),		"fanotify_init"		},
++[495] = { 5,	TD|TF,		SEN(fanotify_mark),		"fanotify_mark"		},
++[496] = { 4,	0,		SEN(prlimit64),			"prlimit64"		},
++[497] = { 5,	TD|TF,		SEN(name_to_handle_at),		"name_to_handle_at"	},
++[498] = { 3,	TD,		SEN(open_by_handle_at),		"open_by_handle_at"	},
++[499] = { 2,	TCL,		SEN(clock_adjtime64),		"clock_adjtime"		},
++[500] = { 1,	TD,		SEN(syncfs),			"syncfs"		},
++[501] = { 2,	TD,		SEN(setns),			"setns"			},
++[502] = { 4,	TN,		SEN(accept4),			"accept4"		},
++[503] = { 4,	TN,		SEN(sendmmsg),			"sendmmsg"		},
++[504] = { 6,	0,		SEN(process_vm_readv),		"process_vm_readv"	},
++[505] = { 6,	0,		SEN(process_vm_writev),		"process_vm_writev"	},
++[506] = { 5,	0,		SEN(kcmp),			"kcmp"			},
++[507] = { 3,	TD,		SEN(finit_module),		"finit_module"		},
++[508] = { 3,	0,		SEN(sched_setattr),		"sched_setattr"		},
++[509] = { 4,	0,		SEN(sched_getattr),		"sched_getattr"		},
++[510] = { 5,	TD|TF,		SEN(renameat2),			"renameat2"		},
++[511] = { 3,	0,		SEN(getrandom),			"getrandom"		},
++[512] = { 2,	TD,		SEN(memfd_create),		"memfd_create"		},
++[513] = { 5,	TD|TF|TP|TSD|SE|SI,	SEN(execveat),			"execveat"		},
++[514] = { 3,	0,		SEN(seccomp),			"seccomp"		},
++[515] = { 3,	TD,		SEN(bpf),			"bpf"			},
++[516] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd"		},
++[517] = { 3,	0,		SEN(membarrier),		"membarrier"		},
++[518] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
++[519] = { 6,	TD,		SEN(copy_file_range),		"copy_file_range"	},
++[520] = { 6,	TD,		SEN(preadv2),			"preadv2"		},
++[521] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
++[522] = { 5,	TD|TF|TFST|TSTA,SEN(statx),			"statx"			},
++[523] = { 6,	0,		SEN(io_pgetevents_time64),	"io_pgetevents"		},
++[524] = { 4,	TM|SI,		SEN(pkey_mprotect),		"pkey_mprotect"		},
++[525] = { 2,	0,		SEN(pkey_alloc),		"pkey_alloc"		},
++[526] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
++[527] = { 4,	0,		SEN(rseq),			"rseq"			},
++[528] = { 3,	TF|TSF|TSFA,	SEN(statfs64),			"statfs64"		},
++[529] = { 3,	TD|TFSF|TSFA,	SEN(fstatfs64),			"fstatfs64"		},
++[530] = { 0,	TC|PU|NF,	SEN(getegid),			"getegid"		},
++[531] = { 0,	TC|PU|NF,	SEN(geteuid),			"geteuid"		},
++[532] = { 0,	PU|NF,		SEN(getppid),			"getppid"		},
++/* all other architectures have common numbers for new syscalls, alpha is the exception */
++/* 534 - 424 == 110 */
++#define BASE_NR 110
++#include "syscallent-common.h"
++#undef BASE_NR
+diff -Nuar strace-5.14.org/src/linux/sw_64/userent.h strace-5.14.sw/src/linux/sw_64/userent.h
+--- strace-5.14.org/src/linux/sw_64/userent.h	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/linux/sw_64/userent.h	2022-06-10 09:07:02.500000000 +0000
+@@ -0,0 +1,74 @@
++/*
++ * Copyright (c) 2014-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++{ 0,			"r0" },
++{ 1,			"r1" },
++{ 2,			"r2" },
++{ 3,			"r3" },
++{ 4,			"r4" },
++{ 5,			"r5" },
++{ 6,			"r6" },
++{ 7,			"r7" },
++{ 8,			"r8" },
++{ 9,			"r9" },
++{ 10,			"r10" },
++{ 11,			"r11" },
++{ 12,			"r12" },
++{ 13,			"r13" },
++{ 14,			"r14" },
++{ 15,			"r15" },
++{ 16,			"r16" },
++{ 17,			"r17" },
++{ 18,			"r18" },
++{ 19,			"r19" },
++{ 20,			"r20" },
++{ 21,			"r21" },
++{ 22,			"r22" },
++{ 23,			"r23" },
++{ 24,			"r24" },
++{ 25,			"r25" },
++{ 26,			"r26" },
++{ 27,			"r27" },
++{ 28,			"r28" },
++{ 29,			"gp" },
++{ 30,			"fp" },
++{ 31,			"zero" },
++{ 32,			"fp0" },
++{ 33,			"fp" },
++{ 34,			"fp2" },
++{ 35,			"fp3" },
++{ 36,			"fp4" },
++{ 37,			"fp5" },
++{ 38,			"fp6" },
++{ 39,			"fp7" },
++{ 40,			"fp8" },
++{ 41,			"fp9" },
++{ 42,			"fp10" },
++{ 43,			"fp11" },
++{ 44,			"fp12" },
++{ 45,			"fp13" },
++{ 46,			"fp14" },
++{ 47,			"fp15" },
++{ 48,			"fp16" },
++{ 49,			"fp17" },
++{ 50,			"fp18" },
++{ 51,			"fp19" },
++{ 52,			"fp20" },
++{ 53,			"fp21" },
++{ 54,			"fp22" },
++{ 55,			"fp23" },
++{ 56,			"fp24" },
++{ 57,			"fp25" },
++{ 58,			"fp26" },
++{ 59,			"fp27" },
++{ 60,			"fp28" },
++{ 61,			"fp29" },
++{ 62,			"fp30" },
++{ 63,			"fp31" },
++{ 64,			"pc" },
++/* Other fields in "struct user" */
++#include "userent0.h"
+diff -Nuar strace-5.14.org/src/print_timeval.c strace-5.14.sw/src/print_timeval.c
+--- strace-5.14.org/src/print_timeval.c	2022-06-10 08:46:52.220000000 +0000
++++ strace-5.14.sw/src/print_timeval.c	2022-06-10 08:50:25.920000000 +0000
+@@ -118,7 +118,7 @@
+ 	return 0;
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ 
+ void
+ print_timeval32_t(const timeval32_t *t)
+diff -Nuar strace-5.14.org/src/printrusage.c strace-5.14.sw/src/printrusage.c
+--- strace-5.14.org/src/printrusage.c	2022-06-10 08:46:52.220000000 +0000
++++ strace-5.14.sw/src/printrusage.c	2022-06-10 08:57:58.520000000 +0000
+@@ -69,7 +69,7 @@
+ 	tprint_struct_end();
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ void
+ printrusage32(struct tcb *const tcp, const kernel_ulong_t addr)
+ {
+diff -Nuar strace-5.14.org/src/resource.c strace-5.14.sw/src/resource.c
+--- strace-5.14.org/src/resource.c	2022-06-10 08:46:52.190000000 +0000
++++ strace-5.14.sw/src/resource.c	2022-06-10 09:10:42.290000000 +0000
+@@ -180,7 +180,7 @@
+ 	return 0;
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_getrusage)
+ {
+ 	if (entering(tcp)) {
+diff -Nuar strace-5.14.org/src/signal.c strace-5.14.sw/src/signal.c
+--- strace-5.14.org/src/signal.c	2022-06-10 08:46:52.180000000 +0000
++++ strace-5.14.sw/src/signal.c	2022-06-10 09:15:07.660000000 +0000
+@@ -289,7 +289,7 @@
+ 	unsigned int sa_flags;
+ 	unsigned long sa_handler__;
+ 	unsigned long sa_mask;
+-#elif defined ALPHA
++#elif defined ALPHA || defined SW_64
+ 	unsigned long sa_handler__;
+ 	unsigned long sa_mask;
+ 	unsigned int sa_flags;
+@@ -300,7 +300,7 @@
+ 	unsigned long sa_restorer;
+ #endif
+ }
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ 	ATTRIBUTE_PACKED
+ #endif
+ ;
+@@ -339,7 +339,7 @@
+ 	PRINT_FIELD_OBJ_VAL(sa, sa_mask, tprint_old_sigmask_val);
+ 	tprint_struct_next();
+ 	PRINT_FIELD_FLAGS(sa, sa_flags, sigact_flags, "SA_???");
+-#if !(defined ALPHA || defined MIPS)
++#if !(defined ALPHA || defined SW_64 || defined MIPS)
+ 	if (sa.sa_flags & 0x04000000U) {
+ 		tprint_struct_next();
+ 		PRINT_FIELD_OBJ_VAL(sa, sa_restorer, printaddr);
+@@ -411,7 +411,7 @@
+ 	return RVAL_DECODED;
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ /*
+  * The OSF/1 sigprocmask is different: it doesn't pass in two pointers,
+  * but rather passes in the new bitmask as an argument and then returns
+@@ -635,7 +635,7 @@
+ 
+ 		/* sigsetsize */
+ 		PRINT_VAL_U(tcp->u_arg[4]);
+-#elif defined(ALPHA)
++#elif defined(ALPHA) || defined(SW_64)
+ 		/* sigsetsize */
+ 		PRINT_VAL_U(tcp->u_arg[3]);
+ 		tprint_arg_next();
+diff -Nuar strace-5.14.org/src/sw_64.c strace-5.14.sw/src/sw_64.c
+--- strace-5.14.org/src/sw_64.c	1970-01-01 00:00:00.000000000 +0000
++++ strace-5.14.sw/src/sw_64.c	2022-06-10 08:57:20.580000000 +0000
+@@ -0,0 +1,78 @@
++/*
++ * Copyright (c) 2016 Dmitry V. Levin <ldv@strace.io>
++ * Copyright (c) 2016-2021 The strace developers.
++ * All rights reserved.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++#include "defs.h"
++
++#ifdef SW_64
++
++# include "xstring.h"
++
++static int
++decode_getxxid(struct tcb *tcp, const char *what)
++{
++	if (entering(tcp))
++		return 0;
++
++	long rval = getrval2(tcp);
++	if (rval == -1)
++		return 0;
++	static const char const fmt[] = "%s %ld";
++	static char outstr[sizeof(fmt) + 3 * sizeof(rval)];
++	xsprintf(outstr, fmt, what, rval);
++	tcp->auxstr = outstr;
++	return RVAL_STR;
++}
++
++SYS_FUNC(getxpid)
++{
++	return decode_getxxid(tcp, "ppid");
++}
++
++SYS_FUNC(getxuid)
++{
++	return decode_getxxid(tcp, "euid");
++}
++
++SYS_FUNC(getxgid)
++{
++	return decode_getxxid(tcp, "egid");
++}
++
++SYS_FUNC(osf_statfs)
++{
++	/* pathname */
++	printpath(tcp, tcp->u_arg[0]);
++	tprint_arg_next();
++
++	/* buf */
++	printaddr(tcp->u_arg[1]);
++	tprint_arg_next();
++
++	/* size */
++	PRINT_VAL_U(tcp->u_arg[2]);
++
++	return RVAL_DECODED;
++}
++
++SYS_FUNC(osf_fstatfs)
++{
++	/* fd */
++	printfd(tcp, tcp->u_arg[0]);
++	tprint_arg_next();
++
++	/* buf */
++	printaddr(tcp->u_arg[1]);
++	tprint_arg_next();
++
++	/* size */
++	PRINT_VAL_U(tcp->u_arg[2]);
++
++	return RVAL_DECODED;
++}
++
++#endif /* SW_64 */
+diff -Nuar strace-5.14.org/src/syscall_dummy.h strace-5.14.sw/src/syscall_dummy.h
+--- strace-5.14.org/src/syscall_dummy.h	2022-06-10 08:46:52.180000000 +0000
++++ strace-5.14.sw/src/syscall_dummy.h	2022-06-10 09:08:58.060000000 +0000
+@@ -33,7 +33,7 @@
+ #  define sys_get_thread_area	printargs
+ # endif
+ 
+-# ifdef ALPHA
++# if defined ALPHA || defined SW_64
+ #  define sys_getdtablesize	printargs
+ # endif
+ 
+diff -Nuar strace-5.14.org/src/time.c strace-5.14.sw/src/time.c
+--- strace-5.14.org/src/time.c	2022-06-10 08:46:52.180000000 +0000
++++ strace-5.14.sw/src/time.c	2022-06-10 09:19:21.770000000 +0000
+@@ -55,7 +55,7 @@
+ }
+ #endif
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_gettimeofday)
+ {
+ 	if (exiting(tcp)) {
+@@ -70,7 +70,7 @@
+ }
+ #endif
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_settimeofday)
+ {
+ 	/* tv */
+@@ -141,7 +141,7 @@
+ 	return 0;
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_getitimer)
+ {
+ 	if (entering(tcp)) {
+@@ -173,7 +173,7 @@
+ 	return 0;
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_setitimer)
+ {
+ 	if (entering(tcp)) {
+diff -Nuar strace-5.14.org/src/utimes.c strace-5.14.sw/src/utimes.c
+--- strace-5.14.org/src/utimes.c	2022-06-10 08:46:52.180000000 +0000
++++ strace-5.14.sw/src/utimes.c	2022-06-10 08:52:39.120000000 +0000
+@@ -75,7 +75,7 @@
+ 	return do_utimensat(tcp, print_timespec64_utime_pair);
+ }
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_utimes)
+ {
+ 	/* pathname */
+diff -Nuar strace-5.14.org/src/wait.c strace-5.14.sw/src/wait.c
+--- strace-5.14.org/src/wait.c	2022-06-10 08:46:52.180000000 +0000
++++ strace-5.14.sw/src/wait.c	2022-06-10 09:18:38.040000000 +0000
+@@ -124,7 +124,7 @@
+ }
+ #endif
+ 
+-#ifdef ALPHA
++#if defined ALPHA || defined SW_64
+ SYS_FUNC(osf_wait4)
+ {
+ 	return printwaitn(tcp, printrusage32);
+diff -Nuar strace-5.14.org/src/xlat/audit_arch.h strace-5.14.sw/src/xlat/audit_arch.h
+--- strace-5.14.org/src/xlat/audit_arch.h	2022-06-10 08:46:52.390000000 +0000
++++ strace-5.14.sw/src/xlat/audit_arch.h	2022-06-10 14:09:15.650000000 +0000
+@@ -19,6 +19,13 @@
+ #else
+ # define AUDIT_ARCH_AARCH64 (EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
+ #endif
++#if defined(AUDIT_ARCH_SW_64) || (defined(HAVE_DECL_AUDIT_ARCH_SW_64) && HAVE_DECL_AUDIT_ARCH_SW_64)
++DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
++static_assert((AUDIT_ARCH_SW_64) == ((EM_SW_64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)), "AUDIT_ARCH_SW_64 != (EM_SW_64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)");
++DIAG_POP_IGNORE_TAUTOLOGICAL_COMPARE
++#else
++# define AUDIT_ARCH_SW_64 (EM_SW_64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
++#endif
+ #if defined(AUDIT_ARCH_ALPHA) || (defined(HAVE_DECL_AUDIT_ARCH_ALPHA) && HAVE_DECL_AUDIT_ARCH_ALPHA)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((AUDIT_ARCH_ALPHA) == ((EM_ALPHA|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)), "AUDIT_ARCH_ALPHA != (EM_ALPHA|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)");
+@@ -396,6 +403,9 @@
+  XLAT(AUDIT_ARCH_AARCH64),
+  #define XLAT_VAL_0 ((unsigned) (AUDIT_ARCH_AARCH64))
+  #define XLAT_STR_0 STRINGIFY(AUDIT_ARCH_AARCH64)
++ XLAT(AUDIT_ARCH_SW_64),
++ #define XLAT_VAL_1 ((unsigned) (AUDIT_ARCH_SW_64))
++ #define XLAT_STR_1 STRINGIFY(AUDIT_ARCH_SW_64)
+  XLAT(AUDIT_ARCH_ALPHA),
+  #define XLAT_VAL_1 ((unsigned) (AUDIT_ARCH_ALPHA))
+  #define XLAT_STR_1 STRINGIFY(AUDIT_ARCH_ALPHA)
+diff -Nuar strace-5.14.org/src/xlat/audit_arch.in strace-5.14.sw/src/xlat/audit_arch.in
+--- strace-5.14.org/src/xlat/audit_arch.in	2022-06-10 08:46:52.470000000 +0000
++++ strace-5.14.sw/src/xlat/audit_arch.in	2022-06-10 14:25:47.740000000 +0000
+@@ -10,6 +10,7 @@
+ 
+ AUDIT_ARCH_AARCH64	(EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
+ AUDIT_ARCH_ALPHA	(EM_ALPHA|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
++AUDIT_ARCH_SW_64	(EM_SW_64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
+ AUDIT_ARCH_ARCOMPACT	(EM_ARCOMPACT|__AUDIT_ARCH_LE)
+ AUDIT_ARCH_ARCOMPACTBE	(EM_ARCOMPACT)
+ AUDIT_ARCH_ARCV2	(EM_ARCV2|__AUDIT_ARCH_LE)
+diff -Nuar strace-5.14.org/src/xlat/elf_em.h strace-5.14.sw/src/xlat/elf_em.h
+--- strace-5.14.org/src/xlat/elf_em.h	2022-06-10 08:46:52.380000000 +0000
++++ strace-5.14.sw/src/xlat/elf_em.h	2022-06-10 13:52:13.260000000 +0000
+@@ -1263,6 +1263,13 @@
+ #else
+ # define EM_OR32 0x8472
+ #endif
++#if defined(EM_SW_64) || (defined(HAVE_DECL_EM_SW_64) && HAVE_DECL_EM_SW_64)
++DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
++static_assert((EM_SW_64) == (0x9916), "EM_SW_64 != 0x9916");
++DIAG_POP_IGNORE_TAUTOLOGICAL_COMPARE
++#else
++# define EM_SW_64 0x9916
++#endif
+ #if defined(EM_ALPHA) || (defined(HAVE_DECL_EM_ALPHA) && HAVE_DECL_EM_ALPHA)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((EM_ALPHA) == (0x9026), "EM_ALPHA != 0x9026");
+@@ -1877,6 +1884,9 @@
+  XLAT(EM_OR32),
+  #define XLAT_VAL_179 ((unsigned) (EM_OR32))
+  #define XLAT_STR_179 STRINGIFY(EM_OR32)
++ XLAT(EM_SW_64),
++ #define XLAT_VAL_180 ((unsigned) (EM_SW_64))
++ #define XLAT_STR_180 STRINGIFY(EM_SW_64)
+  XLAT(EM_ALPHA),
+  #define XLAT_VAL_180 ((unsigned) (EM_ALPHA))
+  #define XLAT_STR_180 STRINGIFY(EM_ALPHA)
+diff -Nuar strace-5.14.org/src/xlat/elf_em.in strace-5.14.sw/src/xlat/elf_em.in
+--- strace-5.14.org/src/xlat/elf_em.in	2022-06-10 08:46:52.460000000 +0000
++++ strace-5.14.sw/src/xlat/elf_em.in	2022-06-10 15:04:58.230000000 +0000
+@@ -31,6 +31,7 @@
+ EM_RCE			39 /* Motorola RCE */
+ EM_ARM			40 /* ARM 32-bit architecture */
+ /* EM_ALPHA		41 - Digital Alpha */
++/* EM_SW_64		41 - Digital Sw_64 */
+ EM_SH			42 /* Hitachi SH */
+ EM_SPARCV9		43 /* SPARC Version 9 */
+ EM_TRICORE		44 /* Siemens TriCore embedded processor */
+@@ -194,6 +195,7 @@
+ EM_FRV			0x5441 /* Fujitsu FR-V */
+ EM_OR32			0x8472 /* arch/openrisc/include/uapi/asm/elf.h */
+ EM_ALPHA		0x9026 /* "This is an interim value that we will use until the committee comes up with a final number."; see also 41 */
++EM_SW_64		0x9916 /* "This is an interim value that we will use until the committee comes up with a final number."; see also 41 */
+ EM_CYGNUS_V850		0x9080 /* Bogus old v850 magic number, used by old tools, removed in v4.6-rc1~95^2~36 */
+ EM_CYGNUS_M32R		0x9041 /* Bogus old m32r magic number, used by old tools. */
+ EM_S390_OLD		0xa390 /* This is the old interim value for S/390 architecture */
+diff -Nuar strace-5.14.org/src/xlat/madvise_cmds.h strace-5.14.sw/src/xlat/madvise_cmds.h
+--- strace-5.14.org/src/xlat/madvise_cmds.h	2022-06-10 08:46:52.360000000 +0000
++++ strace-5.14.sw/src/xlat/madvise_cmds.h	2022-06-10 14:57:19.650000000 +0000
+@@ -31,7 +31,7 @@
+ #else
+ # define MADV_WILLNEED 3
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(MADV_DONTNEED) || (defined(HAVE_DECL_MADV_DONTNEED) && HAVE_DECL_MADV_DONTNEED)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MADV_DONTNEED) == (6), "MADV_DONTNEED != 6");
+@@ -283,7 +283,7 @@
+  #define XLAT_VAL_3 ((unsigned) (MADV_WILLNEED))
+  #define XLAT_STR_3 STRINGIFY(MADV_WILLNEED)
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(MADV_DONTNEED),
+  #define XLAT_VAL_4 ((unsigned) (MADV_DONTNEED))
+  #define XLAT_STR_4 STRINGIFY(MADV_DONTNEED)
+diff -Nuar strace-5.14.org/src/xlat/madvise_cmds.in strace-5.14.sw/src/xlat/madvise_cmds.in
+--- strace-5.14.org/src/xlat/madvise_cmds.in	2022-06-10 08:46:52.450000000 +0000
++++ strace-5.14.sw/src/xlat/madvise_cmds.in	2022-06-10 15:00:22.260000000 +0000
+@@ -8,7 +8,7 @@
+ 
+ MADV_WILLNEED	3
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ MADV_DONTNEED	6
+ #else
+ MADV_DONTNEED	4
+diff -Nuar strace-5.14.org/src/xlat/mlockall_flags.h strace-5.14.sw/src/xlat/mlockall_flags.h
+--- strace-5.14.org/src/xlat/mlockall_flags.h	2022-06-10 08:46:52.360000000 +0000
++++ strace-5.14.sw/src/xlat/mlockall_flags.h	2022-06-10 15:08:51.980000000 +0000
+@@ -3,7 +3,7 @@
+ #include "gcc_compat.h"
+ #include "static_assert.h"
+ 
+-#if defined __alpha__ || defined __powerpc__ || defined __powerpc64__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __powerpc__ || defined __powerpc64__ || defined __sparc__
+ #if defined(MCL_CURRENT) || (defined(HAVE_DECL_MCL_CURRENT) && HAVE_DECL_MCL_CURRENT)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MCL_CURRENT) == (0x2000), "MCL_CURRENT != 0x2000");
+@@ -59,7 +59,7 @@
+ 
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_CONSTANT_COMPARE
+ static const struct xlat_data mlockall_flags_xdata[] = {
+-#if defined __alpha__ || defined __powerpc__ || defined __powerpc64__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __powerpc__ || defined __powerpc64__ || defined __sparc__
+  XLAT(MCL_CURRENT),
+  #define XLAT_VAL_0 ((unsigned) (MCL_CURRENT))
+  #define XLAT_STR_0 STRINGIFY(MCL_CURRENT)
+diff -Nuar strace-5.14.org/src/xlat/mlockall_flags.in strace-5.14.sw/src/xlat/mlockall_flags.in
+--- strace-5.14.org/src/xlat/mlockall_flags.in	2022-06-10 08:46:52.450000000 +0000
++++ strace-5.14.sw/src/xlat/mlockall_flags.in	2022-06-10 12:11:33.520000000 +0000
+@@ -1,4 +1,4 @@
+-#if defined __alpha__ || defined __powerpc__ || defined __powerpc64__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __powerpc__ || defined __powerpc64__ || defined __sparc__
+ MCL_CURRENT	0x2000
+ MCL_FUTURE	0x4000
+ MCL_ONFAULT	0x8000
+diff -Nuar strace-5.14.org/src/xlat/mmap_flags.h strace-5.14.sw/src/xlat/mmap_flags.h
+--- strace-5.14.org/src/xlat/mmap_flags.h	2022-06-10 08:46:52.360000000 +0000
++++ strace-5.14.sw/src/xlat/mmap_flags.h	2022-06-10 14:03:31.850000000 +0000
+@@ -32,7 +32,7 @@
+ #else
+ # define MAP_FIXED 0x4
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(MAP_FIXED) || (defined(HAVE_DECL_MAP_FIXED) && HAVE_DECL_MAP_FIXED)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_FIXED) == (0x100), "MAP_FIXED != 0x100");
+@@ -49,7 +49,7 @@
+ # define MAP_FIXED 0x10
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__
+ #if defined(MAP_ANONYMOUS) || (defined(HAVE_DECL_MAP_ANONYMOUS) && HAVE_DECL_MAP_ANONYMOUS)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_ANONYMOUS) == (0x10), "MAP_ANONYMOUS != 0x10");
+@@ -116,7 +116,7 @@
+ #else
+ # define MAP_NORESERVE 0x400
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(MAP_NORESERVE) || (defined(HAVE_DECL_MAP_NORESERVE) && HAVE_DECL_MAP_NORESERVE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_NORESERVE) == (0x10000), "MAP_NORESERVE != 0x10000");
+@@ -141,7 +141,7 @@
+ #else
+ # define MAP_POPULATE 0x10000
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(MAP_POPULATE) || (defined(HAVE_DECL_MAP_POPULATE) && HAVE_DECL_MAP_POPULATE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_POPULATE) == (0x20000), "MAP_POPULATE != 0x20000");
+@@ -166,7 +166,7 @@
+ #else
+ # define MAP_NONBLOCK 0x20000
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(MAP_NONBLOCK) || (defined(HAVE_DECL_MAP_NONBLOCK) && HAVE_DECL_MAP_NONBLOCK)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_NONBLOCK) == (0x40000), "MAP_NONBLOCK != 0x40000");
+@@ -201,7 +201,7 @@
+ #else
+ # define MAP_GROWSDOWN 0x200
+ #endif
+-#elif defined __alpha__ || defined __mips__ || defined __xtensa__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ #if defined(MAP_GROWSDOWN) || (defined(HAVE_DECL_MAP_GROWSDOWN) && HAVE_DECL_MAP_GROWSDOWN)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_GROWSDOWN) == (0x1000), "MAP_GROWSDOWN != 0x1000");
+@@ -236,7 +236,7 @@
+ #endif
+ #else
+ #endif
+-#if defined __alpha__ || defined __mips__ || defined __xtensa__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ #if defined(MAP_DENYWRITE) || (defined(HAVE_DECL_MAP_DENYWRITE) && HAVE_DECL_MAP_DENYWRITE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_DENYWRITE) == (0x2000), "MAP_DENYWRITE != 0x2000");
+@@ -253,7 +253,7 @@
+ # define MAP_DENYWRITE 0x800
+ #endif
+ #endif
+-#if defined __alpha__ || defined __mips__ || defined __xtensa__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ #if defined(MAP_EXECUTABLE) || (defined(HAVE_DECL_MAP_EXECUTABLE) && HAVE_DECL_MAP_EXECUTABLE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_EXECUTABLE) == (0x4000), "MAP_EXECUTABLE != 0x4000");
+@@ -280,7 +280,7 @@
+ #endif
+ #else
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(_MAP_INHERIT) || (defined(HAVE_DECL__MAP_INHERIT) && HAVE_DECL__MAP_INHERIT)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((_MAP_INHERIT) == (0x400), "_MAP_INHERIT != 0x400");
+@@ -313,7 +313,7 @@
+ #else
+ # define MAP_LOCKED 0x100
+ #endif
+-#elif defined __alpha__ || defined __mips__ || defined __xtensa__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ #if defined(MAP_LOCKED) || (defined(HAVE_DECL_MAP_LOCKED) && HAVE_DECL_MAP_LOCKED)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_LOCKED) == (0x8000), "MAP_LOCKED != 0x8000");
+@@ -330,7 +330,7 @@
+ # define MAP_LOCKED 0x2000
+ #endif
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(_MAP_HASSEMAPHORE) || (defined(HAVE_DECL__MAP_HASSEMAPHORE) && HAVE_DECL__MAP_HASSEMAPHORE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((_MAP_HASSEMAPHORE) == (0x200), "_MAP_HASSEMAPHORE != 0x200");
+@@ -348,7 +348,7 @@
+ #else
+ # define MAP_STACK 0x40000
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(MAP_STACK) || (defined(HAVE_DECL_MAP_STACK) && HAVE_DECL_MAP_STACK)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_STACK) == (0x80000), "MAP_STACK != 0x80000");
+@@ -373,7 +373,7 @@
+ #else
+ # define MAP_HUGETLB 0x80000
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(MAP_HUGETLB) || (defined(HAVE_DECL_MAP_HUGETLB) && HAVE_DECL_MAP_HUGETLB)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_HUGETLB) == (0x100000), "MAP_HUGETLB != 0x100000");
+@@ -410,7 +410,7 @@
+ #else
+ # define MAP_UNINITIALIZED 0x4000000
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(MAP_FIXED_NOREPLACE) || (defined(HAVE_DECL_MAP_FIXED_NOREPLACE) && HAVE_DECL_MAP_FIXED_NOREPLACE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((MAP_FIXED_NOREPLACE) == (0x200000), "MAP_FIXED_NOREPLACE != 0x200000");
+@@ -457,7 +457,7 @@
+ #endif
+ #else
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(_MAP_UNALIGNED) || (defined(HAVE_DECL__MAP_UNALIGNED) && HAVE_DECL__MAP_UNALIGNED)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((_MAP_UNALIGNED) == (0x800), "_MAP_UNALIGNED != 0x800");
+@@ -496,7 +496,7 @@
+  XLAT(MAP_FIXED),
+  #define XLAT_VAL_3 ((unsigned) (MAP_FIXED))
+  #define XLAT_STR_3 STRINGIFY(MAP_FIXED)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(MAP_FIXED),
+  #define XLAT_VAL_4 ((unsigned) (MAP_FIXED))
+  #define XLAT_STR_4 STRINGIFY(MAP_FIXED)
+@@ -506,7 +506,7 @@
+  #define XLAT_STR_5 STRINGIFY(MAP_FIXED)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__
+  XLAT(MAP_ANONYMOUS),
+  #define XLAT_VAL_6 ((unsigned) (MAP_ANONYMOUS))
+  #define XLAT_STR_6 STRINGIFY(MAP_ANONYMOUS)
+@@ -561,7 +561,7 @@
+  XLAT(MAP_NORESERVE),
+  #define XLAT_VAL_14 ((unsigned) (MAP_NORESERVE))
+  #define XLAT_STR_14 STRINGIFY(MAP_NORESERVE)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(MAP_NORESERVE),
+  #define XLAT_VAL_15 ((unsigned) (MAP_NORESERVE))
+  #define XLAT_STR_15 STRINGIFY(MAP_NORESERVE)
+@@ -575,7 +575,7 @@
+  XLAT(MAP_POPULATE),
+  #define XLAT_VAL_17 ((unsigned) (MAP_POPULATE))
+  #define XLAT_STR_17 STRINGIFY(MAP_POPULATE)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(MAP_POPULATE),
+  #define XLAT_VAL_18 ((unsigned) (MAP_POPULATE))
+  #define XLAT_STR_18 STRINGIFY(MAP_POPULATE)
+@@ -589,7 +589,7 @@
+  XLAT(MAP_NONBLOCK),
+  #define XLAT_VAL_20 ((unsigned) (MAP_NONBLOCK))
+  #define XLAT_STR_20 STRINGIFY(MAP_NONBLOCK)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(MAP_NONBLOCK),
+  #define XLAT_VAL_21 ((unsigned) (MAP_NONBLOCK))
+  #define XLAT_STR_21 STRINGIFY(MAP_NONBLOCK)
+@@ -615,7 +615,7 @@
+  XLAT(MAP_GROWSDOWN),
+  #define XLAT_VAL_25 ((unsigned) (MAP_GROWSDOWN))
+  #define XLAT_STR_25 STRINGIFY(MAP_GROWSDOWN)
+-#elif defined __alpha__ || defined __mips__ || defined __xtensa__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+  XLAT(MAP_GROWSDOWN),
+  #define XLAT_VAL_26 ((unsigned) (MAP_GROWSDOWN))
+  #define XLAT_STR_26 STRINGIFY(MAP_GROWSDOWN)
+@@ -641,7 +641,7 @@
+ #endif
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__ || defined __xtensa__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+  XLAT(MAP_DENYWRITE),
+  #define XLAT_VAL_31 ((unsigned) (MAP_DENYWRITE))
+  #define XLAT_STR_31 STRINGIFY(MAP_DENYWRITE)
+@@ -651,7 +651,7 @@
+  #define XLAT_STR_32 STRINGIFY(MAP_DENYWRITE)
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__ || defined __xtensa__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+  XLAT(MAP_EXECUTABLE),
+  #define XLAT_VAL_33 ((unsigned) (MAP_EXECUTABLE))
+  #define XLAT_STR_33 STRINGIFY(MAP_EXECUTABLE)
+@@ -673,7 +673,7 @@
+ #endif
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(_MAP_INHERIT),
+  #define XLAT_VAL_37 ((unsigned) (_MAP_INHERIT))
+  #define XLAT_STR_37 STRINGIFY(_MAP_INHERIT)
+@@ -697,7 +697,7 @@
+  XLAT(MAP_LOCKED),
+  #define XLAT_VAL_41 ((unsigned) (MAP_LOCKED))
+  #define XLAT_STR_41 STRINGIFY(MAP_LOCKED)
+-#elif defined __alpha__ || defined __mips__ || defined __xtensa__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+  XLAT(MAP_LOCKED),
+  #define XLAT_VAL_42 ((unsigned) (MAP_LOCKED))
+  #define XLAT_STR_42 STRINGIFY(MAP_LOCKED)
+@@ -707,7 +707,7 @@
+  #define XLAT_STR_43 STRINGIFY(MAP_LOCKED)
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(_MAP_HASSEMAPHORE),
+  #define XLAT_VAL_44 ((unsigned) (_MAP_HASSEMAPHORE))
+  #define XLAT_STR_44 STRINGIFY(_MAP_HASSEMAPHORE)
+@@ -723,7 +723,7 @@
+  XLAT(MAP_STACK),
+  #define XLAT_VAL_46 ((unsigned) (MAP_STACK))
+  #define XLAT_STR_46 STRINGIFY(MAP_STACK)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(MAP_STACK),
+  #define XLAT_VAL_47 ((unsigned) (MAP_STACK))
+  #define XLAT_STR_47 STRINGIFY(MAP_STACK)
+@@ -737,7 +737,7 @@
+  XLAT(MAP_HUGETLB),
+  #define XLAT_VAL_49 ((unsigned) (MAP_HUGETLB))
+  #define XLAT_STR_49 STRINGIFY(MAP_HUGETLB)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(MAP_HUGETLB),
+  #define XLAT_VAL_50 ((unsigned) (MAP_HUGETLB))
+  #define XLAT_STR_50 STRINGIFY(MAP_HUGETLB)
+@@ -763,7 +763,7 @@
+  #define XLAT_VAL_53 ((unsigned) (MAP_UNINITIALIZED))
+  #define XLAT_STR_53 STRINGIFY(MAP_UNINITIALIZED)
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(MAP_FIXED_NOREPLACE),
+  #define XLAT_VAL_54 ((unsigned) (MAP_FIXED_NOREPLACE))
+  #define XLAT_STR_54 STRINGIFY(MAP_FIXED_NOREPLACE)
+@@ -809,7 +809,7 @@
+ #endif
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(_MAP_UNALIGNED),
+  #define XLAT_VAL_62 ((unsigned) (_MAP_UNALIGNED))
+  #define XLAT_STR_62 STRINGIFY(_MAP_UNALIGNED)
+diff -Nuar strace-5.14.org/src/xlat/mmap_flags.in strace-5.14.sw/src/xlat/mmap_flags.in
+--- strace-5.14.org/src/xlat/mmap_flags.in	2022-06-10 08:46:52.450000000 +0000
++++ strace-5.14.sw/src/xlat/mmap_flags.in	2022-06-10 14:18:12.910000000 +0000
+@@ -8,13 +8,13 @@
+ 
+ #if defined __hppa__
+ MAP_FIXED	0x4
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ MAP_FIXED	0x100
+ #else
+ MAP_FIXED	0x10
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__
+ MAP_ANONYMOUS	0x10
+ #elif defined __mips__ || defined __xtensa__
+ MAP_ANONYMOUS	0x800
+@@ -47,7 +47,7 @@
+ MAP_NORESERVE	0x40
+ #elif defined __mips__ || defined __xtensa__
+ MAP_NORESERVE	0x400
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ MAP_NORESERVE	0x10000
+ #else
+ MAP_NORESERVE	0x4000
+@@ -55,7 +55,7 @@
+ 
+ #if defined __hppa__ || defined __mips__ || defined __xtensa__
+ MAP_POPULATE	0x10000
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ MAP_POPULATE	0x20000
+ #else
+ MAP_POPULATE	0x8000
+@@ -63,7 +63,7 @@
+ 
+ #if defined __hppa__ || defined __mips__ || defined __xtensa__
+ MAP_NONBLOCK	0x20000
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ MAP_NONBLOCK	0x40000
+ #else
+ MAP_NONBLOCK	0x10000
+@@ -77,7 +77,7 @@
+ 
+ #if defined __sparc__
+ MAP_GROWSDOWN	0x200
+-#elif defined __alpha__ || defined __mips__ || defined __xtensa__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ MAP_GROWSDOWN	0x1000
+ #elif defined __hppa__
+ MAP_GROWSDOWN	0x8000
+@@ -91,13 +91,13 @@
+ MAP_GROWSUP
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__ || defined __xtensa__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ MAP_DENYWRITE	0x2000
+ #else
+ MAP_DENYWRITE	0x800
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__ || defined __xtensa__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ MAP_EXECUTABLE	0x4000
+ #else
+ MAP_EXECUTABLE	0x1000
+@@ -109,7 +109,7 @@
+ MAP_INHERIT
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ _MAP_INHERIT	0x400
+ #else
+ _MAP_INHERIT
+@@ -121,13 +121,13 @@
+ MAP_LOCKED	0x80
+ #elif defined __sparc__
+ MAP_LOCKED	0x100
+-#elif defined __alpha__ || defined __mips__ || defined __xtensa__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __xtensa__
+ MAP_LOCKED	0x8000
+ #else
+ MAP_LOCKED	0x2000
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ _MAP_HASSEMAPHORE	0x200
+ #else
+ _MAP_HASSEMAPHORE
+@@ -135,7 +135,7 @@
+ 
+ #if defined __hppa__ || defined __mips__ || defined __xtensa__
+ MAP_STACK	0x40000
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ MAP_STACK	0x80000
+ #else
+ MAP_STACK	0x20000
+@@ -143,7 +143,7 @@
+ 
+ #if defined __hppa__ || defined __mips__ || defined __xtensa__
+ MAP_HUGETLB	0x80000
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ MAP_HUGETLB	0x100000
+ #else
+ MAP_HUGETLB	0x40000
+@@ -161,7 +161,7 @@
+ #endif /* MAP_UNINITIALIZED == 0 */
+ MAP_UNINITIALIZED	0x4000000
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ MAP_FIXED_NOREPLACE	0x200000
+ #else
+ MAP_FIXED_NOREPLACE	0x100000
+@@ -185,7 +185,7 @@
+ MAP_LOCAL
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ _MAP_UNALIGNED	0x800
+ #else
+ _MAP_UNALIGNED
+diff -Nuar strace-5.14.org/src/xlat/resources.h strace-5.14.sw/src/xlat/resources.h
+--- strace-5.14.org/src/xlat/resources.h	2022-06-10 08:46:52.340000000 +0000
++++ strace-5.14.sw/src/xlat/resources.h	2022-06-10 15:10:05.510000000 +0000
+@@ -38,7 +38,7 @@
+ #else
+ # define RLIMIT_CORE 4
+ #endif
+-#if defined(__alpha__)
++#if defined(__alpha__) || defined(__sw_64__)
+ #if defined(RLIMIT_RSS) || (defined(HAVE_DECL_RLIMIT_RSS) && HAVE_DECL_RLIMIT_RSS)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((RLIMIT_RSS) == (5), "RLIMIT_RSS != 5");
+@@ -252,7 +252,7 @@
+  #define XLAT_VAL_4 ((unsigned) (RLIMIT_CORE))
+  #define XLAT_STR_4 STRINGIFY(RLIMIT_CORE)
+ 
+-#if defined(__alpha__)
++#if defined(__alpha__) || defined(__sw_64__)
+  [RLIMIT_RSS] = XLAT(RLIMIT_RSS),
+  #define XLAT_VAL_5 ((unsigned) (RLIMIT_RSS))
+  #define XLAT_STR_5 STRINGIFY(RLIMIT_RSS)
+diff -Nuar strace-5.14.org/src/xlat/resources.in strace-5.14.sw/src/xlat/resources.in
+--- strace-5.14.org/src/xlat/resources.in	2022-06-10 08:46:52.430000000 +0000
++++ strace-5.14.sw/src/xlat/resources.in	2022-06-10 13:53:07.320000000 +0000
+@@ -5,7 +5,7 @@
+ RLIMIT_STACK		3
+ RLIMIT_CORE		4
+ 
+-#if defined(__alpha__)
++#if defined(__alpha__) || defined(__sw_64__)
+ RLIMIT_RSS		5
+ RLIMIT_NOFILE		6
+ RLIMIT_AS		7
+diff -Nuar strace-5.14.org/src/xlat/sock_options.h strace-5.14.sw/src/xlat/sock_options.h
+--- strace-5.14.org/src/xlat/sock_options.h	2022-06-10 08:46:52.330000000 +0000
++++ strace-5.14.sw/src/xlat/sock_options.h	2022-06-10 09:53:12.550000000 +0000
+@@ -10,7 +10,7 @@
+ #else
+ # define SO_DEBUG 1
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_REUSEADDR) || (defined(HAVE_DECL_SO_REUSEADDR) && HAVE_DECL_SO_REUSEADDR)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_REUSEADDR) == (4), "SO_REUSEADDR != 4");
+@@ -27,7 +27,7 @@
+ # define SO_REUSEADDR 2
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_TYPE) || (defined(HAVE_DECL_SO_TYPE) && HAVE_DECL_SO_TYPE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_TYPE) == (4104), "SO_TYPE != 4104");
+@@ -44,7 +44,7 @@
+ # define SO_TYPE 3
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_ERROR) || (defined(HAVE_DECL_SO_ERROR) && HAVE_DECL_SO_ERROR)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_ERROR) == (4103), "SO_ERROR != 4103");
+@@ -61,7 +61,7 @@
+ # define SO_ERROR 4
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_DONTROUTE) || (defined(HAVE_DECL_SO_DONTROUTE) && HAVE_DECL_SO_DONTROUTE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_DONTROUTE) == (16), "SO_DONTROUTE != 16");
+@@ -78,7 +78,7 @@
+ # define SO_DONTROUTE 5
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_BROADCAST) || (defined(HAVE_DECL_SO_BROADCAST) && HAVE_DECL_SO_BROADCAST)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_BROADCAST) == (32), "SO_BROADCAST != 32");
+@@ -95,7 +95,7 @@
+ # define SO_BROADCAST 6
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_SNDBUF) || (defined(HAVE_DECL_SO_SNDBUF) && HAVE_DECL_SO_SNDBUF)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SNDBUF) == (4097), "SO_SNDBUF != 4097");
+@@ -112,7 +112,7 @@
+ # define SO_SNDBUF 7
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_RCVBUF) || (defined(HAVE_DECL_SO_RCVBUF) && HAVE_DECL_SO_RCVBUF)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_RCVBUF) == (4098), "SO_RCVBUF != 4098");
+@@ -129,7 +129,7 @@
+ # define SO_RCVBUF 8
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_KEEPALIVE) || (defined(HAVE_DECL_SO_KEEPALIVE) && HAVE_DECL_SO_KEEPALIVE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_KEEPALIVE) == (8), "SO_KEEPALIVE != 8");
+@@ -146,7 +146,7 @@
+ # define SO_KEEPALIVE 9
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_OOBINLINE) || (defined(HAVE_DECL_SO_OOBINLINE) && HAVE_DECL_SO_OOBINLINE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_OOBINLINE) == (256), "SO_OOBINLINE != 256");
+@@ -197,7 +197,7 @@
+ # define SO_PRIORITY 12
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_LINGER) || (defined(HAVE_DECL_SO_LINGER) && HAVE_DECL_SO_LINGER)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_LINGER) == (128), "SO_LINGER != 128");
+@@ -239,7 +239,7 @@
+ # define SO_BSDCOMPAT 14
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SO_REUSEPORT) || (defined(HAVE_DECL_SO_REUSEPORT) && HAVE_DECL_SO_REUSEPORT)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_REUSEPORT) == (512), "SO_REUSEPORT != 512");
+@@ -264,7 +264,7 @@
+ #else
+ # define SO_PASSCRED 2
+ #endif
+-#elif defined __alpha__ || defined __mips__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__
+ #if defined(SO_PASSCRED) || (defined(HAVE_DECL_SO_PASSCRED) && HAVE_DECL_SO_PASSCRED)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_PASSCRED) == (17), "SO_PASSCRED != 17");
+@@ -297,7 +297,7 @@
+ # define SO_PASSCRED 16
+ #endif
+ #endif
+-#if defined __alpha__ || defined __mips__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__
+ #if defined(SO_PEERCRED) || (defined(HAVE_DECL_SO_PEERCRED) && HAVE_DECL_SO_PEERCRED)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_PEERCRED) == (18), "SO_PEERCRED != 18");
+@@ -362,7 +362,7 @@
+ #else
+ # define SO_RCVLOWAT 4100
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(SO_RCVLOWAT) || (defined(HAVE_DECL_SO_RCVLOWAT) && HAVE_DECL_SO_RCVLOWAT)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_RCVLOWAT) == (4112), "SO_RCVLOWAT != 4112");
+@@ -403,7 +403,7 @@
+ #else
+ # define SO_SNDLOWAT 4099
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(SO_SNDLOWAT) || (defined(HAVE_DECL_SO_SNDLOWAT) && HAVE_DECL_SO_SNDLOWAT)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SNDLOWAT) == (4113), "SO_SNDLOWAT != 4113");
+@@ -436,7 +436,7 @@
+ #else
+ # define SO_RCVTIMEO_OLD 4102
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(SO_RCVTIMEO_OLD) || (defined(HAVE_DECL_SO_RCVTIMEO_OLD) && HAVE_DECL_SO_RCVTIMEO_OLD)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_RCVTIMEO_OLD) == (4114), "SO_RCVTIMEO_OLD != 4114");
+@@ -477,7 +477,7 @@
+ #else
+ # define SO_SNDTIMEO_OLD 4101
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(SO_SNDTIMEO_OLD) || (defined(HAVE_DECL_SO_SNDTIMEO_OLD) && HAVE_DECL_SO_SNDTIMEO_OLD)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SNDTIMEO_OLD) == (4115), "SO_SNDTIMEO_OLD != 4115");
+@@ -502,7 +502,7 @@
+ # define SO_SNDTIMEO_OLD 21
+ #endif
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(SO_SECURITY_AUTHENTICATION) || (defined(HAVE_DECL_SO_SECURITY_AUTHENTICATION) && HAVE_DECL_SO_SECURITY_AUTHENTICATION)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SECURITY_AUTHENTICATION) == (19), "SO_SECURITY_AUTHENTICATION != 19");
+@@ -535,7 +535,7 @@
+ # define SO_SECURITY_AUTHENTICATION 22
+ #endif
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(SO_SECURITY_ENCRYPTION_TRANSPORT) || (defined(HAVE_DECL_SO_SECURITY_ENCRYPTION_TRANSPORT) && HAVE_DECL_SO_SECURITY_ENCRYPTION_TRANSPORT)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SECURITY_ENCRYPTION_TRANSPORT) == (20), "SO_SECURITY_ENCRYPTION_TRANSPORT != 20");
+@@ -568,7 +568,7 @@
+ # define SO_SECURITY_ENCRYPTION_TRANSPORT 23
+ #endif
+ #endif
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ #if defined(SO_SECURITY_ENCRYPTION_NETWORK) || (defined(HAVE_DECL_SO_SECURITY_ENCRYPTION_NETWORK) && HAVE_DECL_SO_SECURITY_ENCRYPTION_NETWORK)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SECURITY_ENCRYPTION_NETWORK) == (21), "SO_SECURITY_ENCRYPTION_NETWORK != 21");
+@@ -685,7 +685,7 @@
+ #else
+ # define SO_ACCEPTCONN 4105
+ #endif
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ #if defined(SO_ACCEPTCONN) || (defined(HAVE_DECL_SO_ACCEPTCONN) && HAVE_DECL_SO_ACCEPTCONN)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_ACCEPTCONN) == (4116), "SO_ACCEPTCONN != 4116");
+@@ -718,7 +718,7 @@
+ # define SO_ACCEPTCONN 30
+ #endif
+ #endif
+-#if defined __alpha__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __sparc__
+ #if defined(SO_PEERSEC) || (defined(HAVE_DECL_SO_PEERSEC) && HAVE_DECL_SO_PEERSEC)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_PEERSEC) == (30), "SO_PEERSEC != 30");
+@@ -751,7 +751,7 @@
+ #else
+ # define SO_SNDBUFFORCE 31
+ #endif
+-#elif defined __alpha__ || defined __hppa__ || defined __sparc__
++#elif defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+ #if defined(SO_SNDBUFFORCE) || (defined(HAVE_DECL_SO_SNDBUFFORCE) && HAVE_DECL_SO_SNDBUFFORCE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_SNDBUFFORCE) == (4106), "SO_SNDBUFFORCE != 4106");
+@@ -768,7 +768,7 @@
+ # define SO_SNDBUFFORCE 32
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+ #if defined(SO_RCVBUFFORCE) || (defined(HAVE_DECL_SO_RCVBUFFORCE) && HAVE_DECL_SO_RCVBUFFORCE)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_RCVBUFFORCE) == (4107), "SO_RCVBUFFORCE != 4107");
+@@ -885,7 +885,7 @@
+ # define SO_TIMESTAMPING_OLD 37
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+ #if defined(SO_PROTOCOL) || (defined(HAVE_DECL_SO_PROTOCOL) && HAVE_DECL_SO_PROTOCOL)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_PROTOCOL) == (4136), "SO_PROTOCOL != 4136");
+@@ -902,7 +902,7 @@
+ # define SO_PROTOCOL 38
+ #endif
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+ #if defined(SO_DOMAIN) || (defined(HAVE_DECL_SO_DOMAIN) && HAVE_DECL_SO_DOMAIN)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SO_DOMAIN) == (4137), "SO_DOMAIN != 4137");
+@@ -1661,7 +1661,7 @@
+  #define XLAT_VAL_0 ((unsigned) (SO_DEBUG))
+  #define XLAT_STR_0 STRINGIFY(SO_DEBUG)
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_REUSEADDR),
+  #define XLAT_VAL_1 ((unsigned) (SO_REUSEADDR))
+  #define XLAT_STR_1 STRINGIFY(SO_REUSEADDR)
+@@ -1671,7 +1671,7 @@
+  #define XLAT_STR_2 STRINGIFY(SO_REUSEADDR)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_TYPE),
+  #define XLAT_VAL_3 ((unsigned) (SO_TYPE))
+  #define XLAT_STR_3 STRINGIFY(SO_TYPE)
+@@ -1681,7 +1681,7 @@
+  #define XLAT_STR_4 STRINGIFY(SO_TYPE)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_ERROR),
+  #define XLAT_VAL_5 ((unsigned) (SO_ERROR))
+  #define XLAT_STR_5 STRINGIFY(SO_ERROR)
+@@ -1691,7 +1691,7 @@
+  #define XLAT_STR_6 STRINGIFY(SO_ERROR)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_DONTROUTE),
+  #define XLAT_VAL_7 ((unsigned) (SO_DONTROUTE))
+  #define XLAT_STR_7 STRINGIFY(SO_DONTROUTE)
+@@ -1701,7 +1701,7 @@
+  #define XLAT_STR_8 STRINGIFY(SO_DONTROUTE)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_BROADCAST),
+  #define XLAT_VAL_9 ((unsigned) (SO_BROADCAST))
+  #define XLAT_STR_9 STRINGIFY(SO_BROADCAST)
+@@ -1711,7 +1711,7 @@
+  #define XLAT_STR_10 STRINGIFY(SO_BROADCAST)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_SNDBUF),
+  #define XLAT_VAL_11 ((unsigned) (SO_SNDBUF))
+  #define XLAT_STR_11 STRINGIFY(SO_SNDBUF)
+@@ -1721,7 +1721,7 @@
+  #define XLAT_STR_12 STRINGIFY(SO_SNDBUF)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_RCVBUF),
+  #define XLAT_VAL_13 ((unsigned) (SO_RCVBUF))
+  #define XLAT_STR_13 STRINGIFY(SO_RCVBUF)
+@@ -1731,7 +1731,7 @@
+  #define XLAT_STR_14 STRINGIFY(SO_RCVBUF)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_KEEPALIVE),
+  #define XLAT_VAL_15 ((unsigned) (SO_KEEPALIVE))
+  #define XLAT_STR_15 STRINGIFY(SO_KEEPALIVE)
+@@ -1741,7 +1741,7 @@
+  #define XLAT_STR_16 STRINGIFY(SO_KEEPALIVE)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_OOBINLINE),
+  #define XLAT_VAL_17 ((unsigned) (SO_OOBINLINE))
+  #define XLAT_STR_17 STRINGIFY(SO_OOBINLINE)
+@@ -1771,7 +1771,7 @@
+  #define XLAT_STR_22 STRINGIFY(SO_PRIORITY)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_LINGER),
+  #define XLAT_VAL_23 ((unsigned) (SO_LINGER))
+  #define XLAT_STR_23 STRINGIFY(SO_LINGER)
+@@ -1795,7 +1795,7 @@
+  #define XLAT_STR_27 STRINGIFY(SO_BSDCOMPAT)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SO_REUSEPORT),
+  #define XLAT_VAL_28 ((unsigned) (SO_REUSEPORT))
+  #define XLAT_STR_28 STRINGIFY(SO_REUSEPORT)
+@@ -1809,7 +1809,7 @@
+  XLAT(SO_PASSCRED),
+  #define XLAT_VAL_30 ((unsigned) (SO_PASSCRED))
+  #define XLAT_STR_30 STRINGIFY(SO_PASSCRED)
+-#elif defined __alpha__ || defined __mips__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__
+  XLAT(SO_PASSCRED),
+  #define XLAT_VAL_31 ((unsigned) (SO_PASSCRED))
+  #define XLAT_STR_31 STRINGIFY(SO_PASSCRED)
+@@ -1827,7 +1827,7 @@
+  #define XLAT_STR_34 STRINGIFY(SO_PASSCRED)
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__
+  XLAT(SO_PEERCRED),
+  #define XLAT_VAL_35 ((unsigned) (SO_PEERCRED))
+  #define XLAT_STR_35 STRINGIFY(SO_PEERCRED)
+@@ -1861,7 +1861,7 @@
+  XLAT(SO_RCVLOWAT),
+  #define XLAT_VAL_42 ((unsigned) (SO_RCVLOWAT))
+  #define XLAT_STR_42 STRINGIFY(SO_RCVLOWAT)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(SO_RCVLOWAT),
+  #define XLAT_VAL_43 ((unsigned) (SO_RCVLOWAT))
+  #define XLAT_STR_43 STRINGIFY(SO_RCVLOWAT)
+@@ -1883,7 +1883,7 @@
+  XLAT(SO_SNDLOWAT),
+  #define XLAT_VAL_47 ((unsigned) (SO_SNDLOWAT))
+  #define XLAT_STR_47 STRINGIFY(SO_SNDLOWAT)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(SO_SNDLOWAT),
+  #define XLAT_VAL_48 ((unsigned) (SO_SNDLOWAT))
+  #define XLAT_STR_48 STRINGIFY(SO_SNDLOWAT)
+@@ -1901,7 +1901,7 @@
+  XLAT(SO_RCVTIMEO_OLD),
+  #define XLAT_VAL_51 ((unsigned) (SO_RCVTIMEO_OLD))
+  #define XLAT_STR_51 STRINGIFY(SO_RCVTIMEO_OLD)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(SO_RCVTIMEO_OLD),
+  #define XLAT_VAL_52 ((unsigned) (SO_RCVTIMEO_OLD))
+  #define XLAT_STR_52 STRINGIFY(SO_RCVTIMEO_OLD)
+@@ -1923,7 +1923,7 @@
+  XLAT(SO_SNDTIMEO_OLD),
+  #define XLAT_VAL_56 ((unsigned) (SO_SNDTIMEO_OLD))
+  #define XLAT_STR_56 STRINGIFY(SO_SNDTIMEO_OLD)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(SO_SNDTIMEO_OLD),
+  #define XLAT_VAL_57 ((unsigned) (SO_SNDTIMEO_OLD))
+  #define XLAT_STR_57 STRINGIFY(SO_SNDTIMEO_OLD)
+@@ -1937,7 +1937,7 @@
+  #define XLAT_STR_59 STRINGIFY(SO_SNDTIMEO_OLD)
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(SO_SECURITY_AUTHENTICATION),
+  #define XLAT_VAL_60 ((unsigned) (SO_SECURITY_AUTHENTICATION))
+  #define XLAT_STR_60 STRINGIFY(SO_SECURITY_AUTHENTICATION)
+@@ -1955,7 +1955,7 @@
+  #define XLAT_STR_63 STRINGIFY(SO_SECURITY_AUTHENTICATION)
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(SO_SECURITY_ENCRYPTION_TRANSPORT),
+  #define XLAT_VAL_64 ((unsigned) (SO_SECURITY_ENCRYPTION_TRANSPORT))
+  #define XLAT_STR_64 STRINGIFY(SO_SECURITY_ENCRYPTION_TRANSPORT)
+@@ -1973,7 +1973,7 @@
+  #define XLAT_STR_67 STRINGIFY(SO_SECURITY_ENCRYPTION_TRANSPORT)
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+  XLAT(SO_SECURITY_ENCRYPTION_NETWORK),
+  #define XLAT_VAL_68 ((unsigned) (SO_SECURITY_ENCRYPTION_NETWORK))
+  #define XLAT_STR_68 STRINGIFY(SO_SECURITY_ENCRYPTION_NETWORK)
+@@ -2041,7 +2041,7 @@
+  XLAT(SO_ACCEPTCONN),
+  #define XLAT_VAL_81 ((unsigned) (SO_ACCEPTCONN))
+  #define XLAT_STR_81 STRINGIFY(SO_ACCEPTCONN)
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+  XLAT(SO_ACCEPTCONN),
+  #define XLAT_VAL_82 ((unsigned) (SO_ACCEPTCONN))
+  #define XLAT_STR_82 STRINGIFY(SO_ACCEPTCONN)
+@@ -2059,7 +2059,7 @@
+  #define XLAT_STR_85 STRINGIFY(SO_ACCEPTCONN)
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __sparc__
+  XLAT(SO_PEERSEC),
+  #define XLAT_VAL_86 ((unsigned) (SO_PEERSEC))
+  #define XLAT_STR_86 STRINGIFY(SO_PEERSEC)
+@@ -2077,7 +2077,7 @@
+  XLAT(SO_SNDBUFFORCE),
+  #define XLAT_VAL_89 ((unsigned) (SO_SNDBUFFORCE))
+  #define XLAT_STR_89 STRINGIFY(SO_SNDBUFFORCE)
+-#elif defined __alpha__ || defined __hppa__ || defined __sparc__
++#elif defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+  XLAT(SO_SNDBUFFORCE),
+  #define XLAT_VAL_90 ((unsigned) (SO_SNDBUFFORCE))
+  #define XLAT_STR_90 STRINGIFY(SO_SNDBUFFORCE)
+@@ -2087,7 +2087,7 @@
+  #define XLAT_STR_91 STRINGIFY(SO_SNDBUFFORCE)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+  XLAT(SO_RCVBUFFORCE),
+  #define XLAT_VAL_92 ((unsigned) (SO_RCVBUFFORCE))
+  #define XLAT_STR_92 STRINGIFY(SO_RCVBUFFORCE)
+@@ -2153,7 +2153,7 @@
+  #define XLAT_STR_105 STRINGIFY(SO_TIMESTAMPING_OLD)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+  XLAT(SO_PROTOCOL),
+  #define XLAT_VAL_106 ((unsigned) (SO_PROTOCOL))
+  #define XLAT_STR_106 STRINGIFY(SO_PROTOCOL)
+@@ -2163,7 +2163,7 @@
+  #define XLAT_STR_107 STRINGIFY(SO_PROTOCOL)
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+  XLAT(SO_DOMAIN),
+  #define XLAT_VAL_108 ((unsigned) (SO_DOMAIN))
+  #define XLAT_STR_108 STRINGIFY(SO_DOMAIN)
+diff -Nuar strace-5.14.org/src/xlat/sock_options.in strace-5.14.sw/src/xlat/sock_options.in
+--- strace-5.14.org/src/xlat/sock_options.in	2022-06-10 08:46:52.410000000 +0000
++++ strace-5.14.sw/src/xlat/sock_options.in	2022-06-10 14:52:49.680000000 +0000
+@@ -2,55 +2,55 @@
+ 
+ SO_DEBUG	1
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_REUSEADDR	4
+ #else
+ SO_REUSEADDR	2
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_TYPE	4104
+ #else
+ SO_TYPE	3
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_ERROR	4103
+ #else
+ SO_ERROR	4
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_DONTROUTE	16
+ #else
+ SO_DONTROUTE	5
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_BROADCAST	32
+ #else
+ SO_BROADCAST	6
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_SNDBUF	4097
+ #else
+ SO_SNDBUF	7
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_RCVBUF	4098
+ #else
+ SO_RCVBUF	8
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_KEEPALIVE	8
+ #else
+ SO_KEEPALIVE	9
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_OOBINLINE	256
+ #else
+ SO_OOBINLINE	10
+@@ -68,7 +68,7 @@
+ SO_PRIORITY	12
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++# define __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_LINGER	128
+ #else
+ SO_LINGER	13
+@@ -82,7 +82,7 @@
+ SO_BSDCOMPAT	14
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_REUSEPORT	512
+ #else
+ SO_REUSEPORT	15
+@@ -90,7 +90,7 @@
+ 
+ #if defined __sparc__
+ SO_PASSCRED	2
+-#elif defined __alpha__ || defined __mips__
++#elif defined __alpha__ || defined __sw_64__ || defined __mips__
+ SO_PASSCRED	17
+ #elif defined __powerpc__
+ SO_PASSCRED	20
+@@ -100,7 +100,7 @@
+ SO_PASSCRED	16
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__
+ SO_PEERCRED	18
+ #elif defined __powerpc__
+ SO_PEERCRED	21
+@@ -118,7 +118,7 @@
+ SO_RCVLOWAT	2048
+ #elif defined __hppa__ || defined __mips__
+ SO_RCVLOWAT	4100
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ SO_RCVLOWAT	4112
+ #else
+ SO_RCVLOWAT	18
+@@ -130,7 +130,7 @@
+ SO_SNDLOWAT	4096
+ #elif defined __hppa__ || defined __mips__
+ SO_SNDLOWAT	4099
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ SO_SNDLOWAT	4113
+ #else
+ SO_SNDLOWAT	19
+@@ -140,7 +140,7 @@
+ SO_RCVTIMEO_OLD	18
+ #elif defined __hppa__ || defined __mips__
+ SO_RCVTIMEO_OLD	4102
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ SO_RCVTIMEO_OLD	4114
+ #elif defined __sparc__
+ SO_RCVTIMEO_OLD	8192
+@@ -152,7 +152,7 @@
+ SO_SNDTIMEO_OLD	19
+ #elif defined __hppa__ || defined __mips__
+ SO_SNDTIMEO_OLD	4101
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ SO_SNDTIMEO_OLD	4115
+ #elif defined __sparc__
+ SO_SNDTIMEO_OLD	16384
+@@ -160,7 +160,7 @@
+ SO_SNDTIMEO_OLD	21
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ SO_SECURITY_AUTHENTICATION	19
+ #elif defined __hppa__
+ SO_SECURITY_AUTHENTICATION	16406
+@@ -170,7 +170,7 @@
+ SO_SECURITY_AUTHENTICATION	22
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ SO_SECURITY_ENCRYPTION_TRANSPORT	20
+ #elif defined __hppa__
+ SO_SECURITY_ENCRYPTION_TRANSPORT	16407
+@@ -180,7 +180,7 @@
+ SO_SECURITY_ENCRYPTION_TRANSPORT	23
+ #endif
+ 
+-#if defined __alpha__
++#if defined __alpha__ || defined __sw_64__
+ SO_SECURITY_ENCRYPTION_NETWORK	21
+ #elif defined __hppa__
+ SO_SECURITY_ENCRYPTION_NETWORK	16408
+@@ -220,7 +220,7 @@
+ 
+ #if defined __mips__
+ SO_ACCEPTCONN	4105
+-#elif defined __alpha__
++#elif defined __alpha__ || defined __sw_64__
+ SO_ACCEPTCONN	4116
+ #elif defined __hppa__
+ SO_ACCEPTCONN	16412
+@@ -230,7 +230,7 @@
+ SO_ACCEPTCONN	30
+ #endif
+ 
+-#if defined __alpha__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __mips__ || defined __sparc__
+ SO_PEERSEC	30
+ #elif defined __hppa__
+ SO_PEERSEC	16413
+@@ -240,13 +240,13 @@
+ 
+ #if defined __mips__
+ SO_SNDBUFFORCE	31
+-#elif defined __alpha__ || defined __hppa__ || defined __sparc__
++#elif defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+ SO_SNDBUFFORCE	4106
+ #else
+ SO_SNDBUFFORCE	32
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __sparc__
+ SO_RCVBUFFORCE	4107
+ #else
+ SO_RCVBUFFORCE	33
+@@ -284,13 +284,13 @@
+ SO_TIMESTAMPING_OLD	37
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_PROTOCOL	4136
+ #else
+ SO_PROTOCOL	38
+ #endif
+ 
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SO_DOMAIN	4137
+ #else
+ SO_DOMAIN	39
+diff -Nuar strace-5.14.org/src/xlat/socketlayers.h strace-5.14.sw/src/xlat/socketlayers.h
+--- strace-5.14.org/src/xlat/socketlayers.h	2022-06-10 08:46:52.320000000 +0000
++++ strace-5.14.sw/src/xlat/socketlayers.h	2022-06-10 14:55:39.620000000 +0000
+@@ -10,7 +10,7 @@
+ #else
+ # define SOL_IP 0
+ #endif
+-#if !(defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__)
++#if !(defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__)
+ #if defined(SOL_SOCKET) || (defined(HAVE_DECL_SOL_SOCKET) && HAVE_DECL_SOL_SOCKET)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SOL_SOCKET) == (1), "SOL_SOCKET != 1");
+@@ -278,7 +278,7 @@
+ #else
+ # define SOL_XDP 283
+ #endif
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ #if defined(SOL_SOCKET) || (defined(HAVE_DECL_SOL_SOCKET) && HAVE_DECL_SOL_SOCKET)
+ DIAG_PUSH_IGNORE_TAUTOLOGICAL_COMPARE
+ static_assert((SOL_SOCKET) == (0xffff), "SOL_SOCKET != 0xffff");
+@@ -297,7 +297,7 @@
+  XLAT(SOL_IP),
+  #define XLAT_VAL_0 ((unsigned) (SOL_IP))
+  #define XLAT_STR_0 STRINGIFY(SOL_IP)
+-#if !(defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__)
++#if !(defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__)
+  XLAT(SOL_SOCKET),
+  #define XLAT_VAL_1 ((unsigned) (SOL_SOCKET))
+  #define XLAT_STR_1 STRINGIFY(SOL_SOCKET)
+@@ -413,7 +413,7 @@
+  XLAT(SOL_XDP),
+  #define XLAT_VAL_38 ((unsigned) (SOL_XDP))
+  #define XLAT_STR_38 STRINGIFY(SOL_XDP)
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+  XLAT(SOL_SOCKET),
+  #define XLAT_VAL_39 ((unsigned) (SOL_SOCKET))
+  #define XLAT_STR_39 STRINGIFY(SOL_SOCKET)
+diff -Nuar strace-5.14.org/src/xlat/socketlayers.in strace-5.14.sw/src/xlat/socketlayers.in
+--- strace-5.14.org/src/xlat/socketlayers.in	2022-06-10 08:46:52.410000000 +0000
++++ strace-5.14.sw/src/xlat/socketlayers.in	2022-06-10 14:59:11.960000000 +0000
+@@ -1,6 +1,6 @@
+ #sorted sort -k2,2n
+ SOL_IP		0
+-#if !(defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__)
++#if !(defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__)
+ SOL_SOCKET	1
+ #endif
+ SOL_TCP		6
+@@ -40,6 +40,6 @@
+ SOL_KCM		281
+ SOL_TLS		282
+ SOL_XDP		283
+-#if defined __alpha__ || defined __hppa__ || defined __mips__ || defined __sparc__
++#if defined __alpha__ || defined __sw_64__ || defined __hppa__ || defined __mips__ || defined __sparc__
+ SOL_SOCKET	0xffff
+ #endif
+diff -Nuar strace-5.14.org/tests/create_tmpfile.c strace-5.14.sw/tests/create_tmpfile.c
+--- strace-5.14.org/tests/create_tmpfile.c	2022-06-10 08:46:52.110000000 +0000
++++ strace-5.14.sw/tests/create_tmpfile.c	2022-06-10 15:54:22.190000000 +0000
+@@ -14,7 +14,7 @@
+ #ifndef O_TMPFILE
+ # if defined __hppa__
+ #  define O_TMPFILE	040000000
+-# elif defined __alpha__
++# elif defined __alpha__ || defined __sw_64__
+ #  define O_TMPFILE	0100000000
+ # elif defined __sparc__
+ #  define O_TMPFILE	0200000000
+diff -Nuar strace-5.14.org/tests/shmxt.c strace-5.14.sw/tests/shmxt.c
+--- strace-5.14.org/tests/shmxt.c	2022-06-10 08:46:52.000000000 +0000
++++ strace-5.14.sw/tests/shmxt.c	2022-06-10 15:55:29.700000000 +0000
+@@ -19,7 +19,7 @@
+ 	id = -1;
+ }
+ 
+-#ifdef __alpha__
++#if defined __alpha__ || defined __sw_64__
+ # define SHMAT "osf_shmat"
+ #else
+ # define SHMAT "shmat"
+diff -Nuar strace-5.14.org/tests/sigaction.c strace-5.14.sw/tests/sigaction.c
+--- strace-5.14.org/tests/sigaction.c	2022-06-10 08:46:52.000000000 +0000
++++ strace-5.14.sw/tests/sigaction.c	2022-06-10 15:57:25.200000000 +0000
+@@ -24,7 +24,7 @@
+ 	unsigned int flags;
+ 	unsigned long handler;
+ 	unsigned long mask[1];
+-# elif defined ALPHA
++# elif defined ALPHA || defined SW_64
+ 	unsigned long handler;
+ 	unsigned long mask[1];
+ 	unsigned int flags;
+@@ -35,7 +35,7 @@
+ 	unsigned long restorer;
+ # endif
+ }
+-# ifdef ALPHA
++# if defined ALPHA || defined SW_64
+ 	ATTRIBUTE_PACKED
+ # endif
+ ;
+@@ -157,7 +157,7 @@
+ 	sigdelset(mask.libc, SIGHUP);
+ 
+ 	memcpy(new_act->mask, mask.old, sizeof(mask.old));
+-# if defined SA_RESTORER && !(defined ALPHA || defined MIPS)
++# if defined SA_RESTORER && !(defined ALPHA || defined SW_64 || defined MIPS)
+ 	new_act->flags = SA_RESTORER;
+ 	new_act->restorer = (unsigned long) 0xdeadfacecafef00dULL;
+ #  define SA_RESTORER_FMT ", sa_flags=SA_RESTORER, sa_restorer=%#lx"
+diff -Nuar strace-5.14.org/tests/signal2name.c strace-5.14.sw/tests/signal2name.c
+--- strace-5.14.org/tests/signal2name.c	2022-06-10 08:46:52.110000000 +0000
++++ strace-5.14.sw/tests/signal2name.c	2022-06-10 15:54:44.140000000 +0000
+@@ -40,7 +40,7 @@
+ 	CASE(SIGWINCH);
+ 	CASE(SIGXCPU);
+ 	CASE(SIGXFSZ);
+-#if defined ALPHA
++#if defined ALPHA || defined SW_64
+ 	CASE(SIGABRT);
+ 	CASE(SIGEMT);
+ 	CASE(SIGINFO);
+diff -Nuar strace-5.14.org/tests/umount.test strace-5.14.sw/tests/umount.test
+--- strace-5.14.org/tests/umount.test	2022-06-10 08:46:51.830000000 +0000
++++ strace-5.14.sw/tests/umount.test	2022-06-10 15:52:06.870000000 +0000
+@@ -10,7 +10,7 @@
+ . "${srcdir=.}/init.sh"
+ 
+ case "$STRACE_ARCH" in
+-	alpha) syscall=oldumount ;;
++	alpha|sw_64) syscall=oldumount ;;
+ 	*) syscall=umount ;;
+ esac
+ run_strace_match_diff -a24 -s6 -e trace=$syscall
+diff -Nuar strace-5.14.org/tests/umount2.test strace-5.14.sw/tests/umount2.test
+--- strace-5.14.org/tests/umount2.test	2022-06-10 08:46:51.830000000 +0000
++++ strace-5.14.sw/tests/umount2.test	2022-06-10 15:55:05.890000000 +0000
+@@ -10,7 +10,7 @@
+ . "${srcdir=.}/init.sh"
+ 
+ case "$STRACE_ARCH" in
+-	alpha|ia64) syscall=umount ;;
++	alpha|ia64|sw_64) syscall=umount ;;
+ 	*) syscall=umount2 ;;
+ esac
+ run_strace_match_diff -s7 -e trace=$syscall
+diff -Nuar strace-5.14.org/tests-m32/create_tmpfile.c strace-5.14.sw/tests-m32/create_tmpfile.c
+--- strace-5.14.org/tests-m32/create_tmpfile.c	2022-06-10 08:46:51.810000000 +0000
++++ strace-5.14.sw/tests-m32/create_tmpfile.c	2022-06-10 15:43:33.020000000 +0000
+@@ -14,7 +14,7 @@
+ #ifndef O_TMPFILE
+ # if defined __hppa__
+ #  define O_TMPFILE	040000000
+-# elif defined __alpha__
++# elif defined __alpha__ || defined __sw_64__
+ #  define O_TMPFILE	0100000000
+ # elif defined __sparc__
+ #  define O_TMPFILE	0200000000
+diff -Nuar strace-5.14.org/tests-m32/shmxt.c strace-5.14.sw/tests-m32/shmxt.c
+--- strace-5.14.org/tests-m32/shmxt.c	2022-06-10 08:46:51.690000000 +0000
++++ strace-5.14.sw/tests-m32/shmxt.c	2022-06-10 15:46:34.630000000 +0000
+@@ -19,7 +19,7 @@
+ 	id = -1;
+ }
+ 
+-#ifdef __alpha__
++#if defined __alpha__ || defined __sw_64__
+ # define SHMAT "osf_shmat"
+ #else
+ # define SHMAT "shmat"
+diff -Nuar strace-5.14.org/tests-m32/sigaction.c strace-5.14.sw/tests-m32/sigaction.c
+--- strace-5.14.org/tests-m32/sigaction.c	2022-06-10 08:46:51.690000000 +0000
++++ strace-5.14.sw/tests-m32/sigaction.c	2022-06-10 15:50:14.920000000 +0000
+@@ -24,7 +24,7 @@
+ 	unsigned int flags;
+ 	unsigned long handler;
+ 	unsigned long mask[1];
+-# elif defined ALPHA
++# elif defined ALPHA || defined SW_64
+ 	unsigned long handler;
+ 	unsigned long mask[1];
+ 	unsigned int flags;
+@@ -35,7 +35,7 @@
+ 	unsigned long restorer;
+ # endif
+ }
+-# ifdef ALPHA
++# if defined ALPHA || defined SW_64
+ 	ATTRIBUTE_PACKED
+ # endif
+ ;
+@@ -157,7 +157,7 @@
+ 	sigdelset(mask.libc, SIGHUP);
+ 
+ 	memcpy(new_act->mask, mask.old, sizeof(mask.old));
+-# if defined SA_RESTORER && !(defined ALPHA || defined MIPS)
++# if defined SA_RESTORER && !(defined ALPHA || defined SW_64 || defined MIPS)
+ 	new_act->flags = SA_RESTORER;
+ 	new_act->restorer = (unsigned long) 0xdeadfacecafef00dULL;
+ #  define SA_RESTORER_FMT ", sa_flags=SA_RESTORER, sa_restorer=%#lx"
+diff -Nuar strace-5.14.org/tests-m32/signal2name.c strace-5.14.sw/tests-m32/signal2name.c
+--- strace-5.14.org/tests-m32/signal2name.c	2022-06-10 08:46:51.810000000 +0000
++++ strace-5.14.sw/tests-m32/signal2name.c	2022-06-10 15:45:05.850000000 +0000
+@@ -40,7 +40,7 @@
+ 	CASE(SIGWINCH);
+ 	CASE(SIGXCPU);
+ 	CASE(SIGXFSZ);
+-#if defined ALPHA
++#if defined ALPHA || defined SW_64
+ 	CASE(SIGABRT);
+ 	CASE(SIGEMT);
+ 	CASE(SIGINFO);
+diff -Nuar strace-5.14.org/tests-m32/umount.test strace-5.14.sw/tests-m32/umount.test
+--- strace-5.14.org/tests-m32/umount.test	2022-06-10 08:46:51.540000000 +0000
++++ strace-5.14.sw/tests-m32/umount.test	2022-06-10 15:43:06.110000000 +0000
+@@ -10,7 +10,7 @@
+ . "${srcdir=.}/init.sh"
+ 
+ case "$STRACE_ARCH" in
+-	alpha) syscall=oldumount ;;
++	alpha | sw_64) syscall=oldumount ;;
+ 	*) syscall=umount ;;
+ esac
+ run_strace_match_diff -a24 -s6 -e trace=$syscall
+diff -Nuar strace-5.14.org/tests-m32/umount2.test strace-5.14.sw/tests-m32/umount2.test
+--- strace-5.14.org/tests-m32/umount2.test	2022-06-10 08:46:51.530000000 +0000
++++ strace-5.14.sw/tests-m32/umount2.test	2022-06-10 15:45:59.200000000 +0000
+@@ -10,7 +10,7 @@
+ . "${srcdir=.}/init.sh"
+ 
+ case "$STRACE_ARCH" in
+-	alpha|ia64) syscall=umount ;;
++	alpha|ia64|sw_64) syscall=umount ;;
+ 	*) syscall=umount2 ;;
+ esac
+ run_strace_match_diff -s7 -e trace=$syscall
+diff -Nuar strace-5.14.org/tests-mx32/create_tmpfile.c strace-5.14.sw/tests-mx32/create_tmpfile.c
+--- strace-5.14.org/tests-mx32/create_tmpfile.c	2022-06-10 08:46:51.510000000 +0000
++++ strace-5.14.sw/tests-mx32/create_tmpfile.c	2022-06-10 16:00:02.430000000 +0000
+@@ -14,7 +14,7 @@
+ #ifndef O_TMPFILE
+ # if defined __hppa__
+ #  define O_TMPFILE	040000000
+-# elif defined __alpha__
++# elif defined __alpha__ || defined __sw_64__
+ #  define O_TMPFILE	0100000000
+ # elif defined __sparc__
+ #  define O_TMPFILE	0200000000
+diff -Nuar strace-5.14.org/tests-mx32/shmxt.c strace-5.14.sw/tests-mx32/shmxt.c
+--- strace-5.14.org/tests-mx32/shmxt.c	2022-06-10 08:46:51.400000000 +0000
++++ strace-5.14.sw/tests-mx32/shmxt.c	2022-06-10 16:02:28.970000000 +0000
+@@ -19,7 +19,7 @@
+ 	id = -1;
+ }
+ 
+-#ifdef __alpha__
++#if defined __alpha__ || defined __sw_64__
+ # define SHMAT "osf_shmat"
+ #else
+ # define SHMAT "shmat"
+diff -Nuar strace-5.14.org/tests-mx32/sigaction.c strace-5.14.sw/tests-mx32/sigaction.c
+--- strace-5.14.org/tests-mx32/sigaction.c	2022-06-10 08:46:51.400000000 +0000
++++ strace-5.14.sw/tests-mx32/sigaction.c	2022-06-10 16:03:37.700000000 +0000
+@@ -24,7 +24,7 @@
+ 	unsigned int flags;
+ 	unsigned long handler;
+ 	unsigned long mask[1];
+-# elif defined ALPHA
++# elif defined ALPHA || defined SW_64
+ 	unsigned long handler;
+ 	unsigned long mask[1];
+ 	unsigned int flags;
+@@ -35,7 +35,7 @@
+ 	unsigned long restorer;
+ # endif
+ }
+-# ifdef ALPHA
++# if defined ALPHA || defined SW_64
+ 	ATTRIBUTE_PACKED
+ # endif
+ ;
+@@ -157,7 +157,7 @@
+ 	sigdelset(mask.libc, SIGHUP);
+ 
+ 	memcpy(new_act->mask, mask.old, sizeof(mask.old));
+-# if defined SA_RESTORER && !(defined ALPHA || defined MIPS)
++# if defined SA_RESTORER && !(defined ALPHA || defined SW_64 || defined MIPS)
+ 	new_act->flags = SA_RESTORER;
+ 	new_act->restorer = (unsigned long) 0xdeadfacecafef00dULL;
+ #  define SA_RESTORER_FMT ", sa_flags=SA_RESTORER, sa_restorer=%#lx"
+diff -Nuar strace-5.14.org/tests-mx32/signal2name.c strace-5.14.sw/tests-mx32/signal2name.c
+--- strace-5.14.org/tests-mx32/signal2name.c	2022-06-10 08:46:51.510000000 +0000
++++ strace-5.14.sw/tests-mx32/signal2name.c	2022-06-10 16:01:36.840000000 +0000
+@@ -40,7 +40,7 @@
+ 	CASE(SIGWINCH);
+ 	CASE(SIGXCPU);
+ 	CASE(SIGXFSZ);
+-#if defined ALPHA
++#if defined ALPHA || defined SW_64
+ 	CASE(SIGABRT);
+ 	CASE(SIGEMT);
+ 	CASE(SIGINFO);
+diff -Nuar strace-5.14.org/tests-mx32/umount.test strace-5.14.sw/tests-mx32/umount.test
+--- strace-5.14.org/tests-mx32/umount.test	2022-06-10 08:46:51.240000000 +0000
++++ strace-5.14.sw/tests-mx32/umount.test	2022-06-10 15:57:48.670000000 +0000
+@@ -10,7 +10,7 @@
+ . "${srcdir=.}/init.sh"
+ 
+ case "$STRACE_ARCH" in
+-	alpha) syscall=oldumount ;;
++	alpha|sw_64) syscall=oldumount ;;
+ 	*) syscall=umount ;;
+ esac
+ run_strace_match_diff -a24 -s6 -e trace=$syscall
+diff -Nuar strace-5.14.org/tests-mx32/umount2.test strace-5.14.sw/tests-mx32/umount2.test
+--- strace-5.14.org/tests-mx32/umount2.test	2022-06-10 08:46:51.240000000 +0000
++++ strace-5.14.sw/tests-mx32/umount2.test	2022-06-10 16:01:57.720000000 +0000
+@@ -10,7 +10,7 @@
+ . "${srcdir=.}/init.sh"
+ 
+ case "$STRACE_ARCH" in
+-	alpha|ia64) syscall=umount ;;
++	alpha|ia64|sw_64) syscall=umount ;;
+ 	*) syscall=umount2 ;;
+ esac
+ run_strace_match_diff -s7 -e trace=$syscall
