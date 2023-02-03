@@ -1,8 +1,6 @@
-#needsrootforbuild
-# This spec file is from upstream.
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 5.14
+Version: 6.1
 Release: 1
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
 License: LGPL-2.1+ and GPL-2.0+
@@ -17,7 +15,7 @@ BuildRequires: xz
 %else
 Source: strace-%{version}.tar.gz
 %endif
-BuildRequires: gcc gzip
+BuildRequires: gcc gzip make
 
 # Install Bluetooth headers for AF_BLUETOOTH sockets decoding.
 %if 0%{?fedora} >= 18 || 0%{?centos} >= 6 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1200 || 0%{?openEuler} >= 1
@@ -38,6 +36,12 @@ BuildRequires: pkgconfig(bluez)
 %{?!buildroot:BuildRoot: %_tmppath/buildroot-%name-%version-%release}
 %define maybe_use_defattr %{?suse_version:%%defattr(-,root,root)}
 
+# Fallback definitions for make_build/make_install macros
+%{?!__make:       %global __make %_bindir/make}
+%{?!__install:    %global __install %_bindir/install}
+%{?!make_build:   %global make_build %__make %{?_smp_mflags}}
+%{?!make_install: %global make_install %__make install DESTDIR="%{?buildroot}"}
+
 %description
 The strace program intercepts and records the system calls called and
 received by a running process.  Strace can print a record of each
@@ -49,10 +53,11 @@ Install strace if you need a tool to track the system calls made and
 received by a process.
 
 %prep
-%autosetup -p1
+%setup -q
 echo -n %version-%release > .tarball-version
-echo -n 2020 > .year
-echo -n 2020-04-06 > .strace.1.in.date
+echo -n 2022 > .year
+echo -n 2022-10-16 > doc/.strace.1.in.date
+echo -n 2022-01-01 > doc/.strace-log-merge.1.in.date
 
 %build
 echo 'BEGIN OF BUILD ENVIRONMENT INFORMATION'
@@ -68,13 +73,10 @@ echo 'END OF BUILD ENVIRONMENT INFORMATION'
 
 CFLAGS_FOR_BUILD="$RPM_OPT_FLAGS"; export CFLAGS_FOR_BUILD
 %configure --enable-mpers=check
-make %{?_smp_mflags}
+%make_build
 
 %install
-make DESTDIR=%{buildroot} install
-
-# remove unpackaged files from the buildroot
-rm -f %{buildroot}%{_bindir}/strace-graph
+%make_install
 
 # some say uncompressed changelog files are too big
 for f in ChangeLog ChangeLog-CVS; do
@@ -83,15 +85,21 @@ done
 wait
 
 %check
-# testcases which read /dev/full will fail because /dev/full is rw--w--w-- and
-# needsrootforbuild cannot take affect
-#%{buildroot}%{_bindir}/strace -V
-#make %{?_smp_mflags} -k check VERBOSE=1
-#echo 'BEGIN OF TEST SUITE INFORMATION'
-#tail -n 99999 -- tests*/test-suite.log tests*/ksysent.gen.log
-#find tests* -type f -name '*.log' -print0 |
-#	xargs -r0 grep -H '^KERNEL BUG:' -- ||:
-#echo 'END OF TEST SUITE INFORMATION'
+#width=$(echo __LONG_WIDTH__ |%__cc -E -P -)
+#skip_32bit=0
+#%if 0%{?fedora} >= 35 || 0%{?rhel} > 9
+#skip_32bit=1
+#%endif
+
+#if [ "${width}" != 32 ] || [ "${skip_32bit}" != 1 ]; then
+#	%{buildroot}%{_bindir}/strace -V
+#	%make_build -k check VERBOSE=1
+#	echo 'BEGIN OF TEST SUITE INFORMATION'
+#	tail -n 99999 -- tests*/test-suite.log tests*/ksysent.gen.log
+#	find tests* -type f -name '*.log' -print0 |
+#		xargs -r0 grep -H '^KERNEL BUG:' -- ||:
+#	echo 'END OF TEST SUITE INFORMATION'
+#fi
 
 %files
 %maybe_use_defattr
@@ -101,6 +109,9 @@ wait
 %{_mandir}/man1/*
 
 %changelog
+* Fri Feb 3 2023 zhujin <zhujin18@huawei.com> - 6.1-1
+- update to 6.1
+
 * Mon Nov 29 2021 zhouwenpei <zhouwenpei1@huawei.com> - 5.14-1
 - update to 5.14
 
