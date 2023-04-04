@@ -1,0 +1,28 @@
+From cab8b0976b7b1c7653728ab27014b2553416981b Mon Sep 17 00:00:00 2001
+From: chenzanyu <chenzanyu@huawei.com>
+Date: Tue, 4 Apr 2023 16:13:37 +0800
+Subject: [PATCH] strace: solve ilp32 strace build error
+
+reason: When constructing, HAVE_ARCH_OLD_TIME64_SYSCALLS SIZEOF_LONG == 8,
+resulting in failure to build ilp32, need to add SIZEOF_LONG == 4 to fit ilp32
+
+Signed-off-by: chenzanyu <chenzanyu@huawei.com>
+---
+ src/arch_defs.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/arch_defs.h b/src/arch_defs.h
+index bb35252..e3d2bf3 100644
+--- a/src/arch_defs.h
++++ b/src/arch_defs.h
+@@ -66,7 +66,7 @@
+ # endif
+
+ # ifndef HAVE_ARCH_OLD_TIME64_SYSCALLS
+-#  define HAVE_ARCH_OLD_TIME64_SYSCALLS (SIZEOF_LONG == 8)
++#  define HAVE_ARCH_OLD_TIME64_SYSCALLS ((SIZEOF_LONG == 4) || (SIZEOF_LONG == 8))
+ # endif
+
+ # ifndef MIN_KLONGSIZE
+--
+2.12.3
