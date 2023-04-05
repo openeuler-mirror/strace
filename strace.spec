@@ -3,7 +3,7 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
 Version: 5.14
-Release: 3
+Release: 4
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
 License: LGPL-2.1+ and GPL-2.0+
 # Some distros require Group tag to be present,
@@ -21,6 +21,7 @@ Source: strace-%{version}.tar.gz
 Patch1: strace-5.14-sw.patch
 %endif
 Patch2: strace-5.14-loongarch64.patch
+Patch3: strace-5.14-solve-ilp32-strace-build-error.patch
 BuildRequires: gcc gzip
 
 # Install Bluetooth headers for AF_BLUETOOTH sockets decoding.
@@ -105,6 +106,9 @@ wait
 %{_mandir}/man1/*
 
 %changelog
+* Tue Apr 4 2023 chenzanyu <chenzanyu@huawei.com> - 5.14-4
+- solve ilp32 strace build error
+
 * Tue Jan 10 2023 Hui Li<lihui@loongson.cn> - 5.14-3
 - Add loongarch64 architecture
 
