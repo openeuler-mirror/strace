@@ -1,7 +1,7 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
 Version: 6.1
-Release: 1
+Release: 2
 # The test suite is GPLv2+, all the rest is LGPLv2.1+.
 License: LGPL-2.1+ and GPL-2.0+
 # Some distros require Group tag to be present,
@@ -71,6 +71,7 @@ kver="$(printf '%%s\n%%s\n' '#include <linux/version.h>' 'LINUX_VERSION_CODE' | 
 printf 'kernel-headers %%s.%%s.%%s\n' $(($kver/65536)) $(($kver/256%%256)) $(($kver%%256))
 echo 'END OF BUILD ENVIRONMENT INFORMATION'
 
+CC_FOR_BUILD="$CC"; export CC_FOR_BUILD
 CFLAGS_FOR_BUILD="$RPM_OPT_FLAGS"; export CFLAGS_FOR_BUILD
 %configure --enable-mpers=check
 %make_build
@@ -109,6 +110,9 @@ wait
 %{_mandir}/man1/*
 
 %changelog
+* Wed Apr 19 2023 Xiaoya Huang <huangxiaoya@iscas.ac.cn> - 6.1-2
+- Fix CC compiler support
+
 * Fri Feb 3 2023 zhujin <zhujin18@huawei.com> - 6.1-1
 - update to 6.1
 
